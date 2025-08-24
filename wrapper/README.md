@@ -995,6 +995,41 @@ smart_security_group_vpc_id = "vpc-1234567890abcdef0"
 # 4. Merge with any specified existing security groups
 ```
 
+#### **5. Security Group Naming and Tagging**
+```hcl
+# Security Group Naming
+create_security_group = true
+security_group_name = "my-custom-security-group"
+security_group_use_name_prefix = false  # Use exact name, not prefix
+security_group_description = "Custom security group for web servers"
+
+# Security Group Tags
+security_group_tags = {
+  Name = "my-custom-security-group"
+  Purpose = "Web Server Security"
+  Environment = "production"
+  Owner = "DevOps Team"
+  CostCenter = "IT-001"
+  ManagedBy = "terraform"
+}
+
+# Rule-specific tags
+security_group_ingress_rules = {
+  ssh = {
+    from_port = 22
+    to_port = 22
+    ip_protocol = "tcp"
+    cidr_ipv4 = "10.0.0.0/8"
+    description = "SSH access"
+    tags = {
+      RuleType = "SSH"
+      AccessLevel = "Admin"
+      Source = "VPC"
+    }
+  }
+}
+```
+
 ## 📚 Examples
 
 ### **1. Simple Web Application**
@@ -1057,6 +1092,16 @@ terraform apply
 cp examples/security-groups.tfvars terraform.tfvars
 
 # Update security group configuration
+terraform plan
+terraform apply
+```
+
+### **7. Security Group Naming and Tagging**
+```bash
+# Copy example
+cp examples/security-group-naming-tags.tfvars terraform.tfvars
+
+# Update naming and tagging configuration
 terraform plan
 terraform apply
 ```
