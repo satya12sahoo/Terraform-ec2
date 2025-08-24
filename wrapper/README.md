@@ -74,8 +74,8 @@ graph TD
     I --> N{Enable Logging?}
     
     %% IAM Decision Logic
-    K --> O{Intelligent IAM Enabled?}
-    O -->|Yes| P[Intelligent IAM Logic]
+    K --> O{Dynamic IAM Enabled?}
+    O -->|Yes| P[Dynamic IAM Logic]
     O -->|No| Q{Existing Role Specified?}
     
     P --> R{Check Existing Role}
@@ -227,7 +227,7 @@ graph TD
     J --> M{Smart IAM Enabled?}
     K --> N{Create Security Group?}
     
-    M -->|Yes| O[Intelligent IAM Decision Tree]
+    M -->|Yes| O[Dynamic IAM Decision Tree]
     M -->|No| P{Existing Role?}
     N -->|Yes| Q[Security Group Creation Logic]
     N -->|No| R{Existing Security Groups Specified?}
@@ -1139,14 +1139,14 @@ instance_profile_name = "my-new-instance-profile"
 |----------|------|----------|---------|-------------|
 | `iam_instance_profile` | `string` | ❌ No | `null` | Existing IAM instance profile name |
 | `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create instance profile for existing role |
-| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable intelligent IAM logic |
-| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for intelligent IAM |
-| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for intelligent IAM role |
-| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for intelligent IAM role |
-| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to intelligent IAM role |
-| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for intelligent IAM role |
-| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for intelligent IAM role |
-| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for intelligent IAM instance profile |
+| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable dynamic IAM logic |
+| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for dynamic IAM |
+| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for dynamic IAM role |
+| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for dynamic IAM role |
+| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to dynamic IAM role |
+| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for dynamic IAM role |
+| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for dynamic IAM role |
+| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for dynamic IAM instance profile |
 | `smart_iam_force_create_role` | `bool` | ❌ No | `false` | Force create IAM role even if profile exists |
 | `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
 | `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |
