@@ -516,6 +516,8 @@ logging = {
 
 ## 📋 Complete Variables Reference
 
+**✅ This section contains ALL variables from `variables.tf` - everything can be configured via `tfvars` files.**
+
 ### **🔧 Core Variables**
 
 | Variable | Type | Required | Default | Description |
@@ -633,6 +635,36 @@ logging = {
 | `user_data` | `string` | ❌ No | `null` | Raw user data string |
 | `user_data_base64` | `string` | ❌ No | `null` | Base64 encoded user data |
 | `user_data_replace_on_change` | `bool` | ❌ No | `null` | Replace user data on changes |
+| `default_role_name` | `string` | ❌ No | `"default"` | Default role name for user data template |
+
+### **🔧 Advanced Instance Configuration Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `capacity_reservation_specification` | `object` | ❌ No | `null` | Capacity reservation targeting |
+| `cpu_options` | `object` | ❌ No | `null` | CPU options (core_count, threads_per_core) |
+| `cpu_credits` | `string` | ❌ No | `null` | CPU credit option (unlimited/standard) |
+| `enclave_options_enabled` | `bool` | ❌ No | `null` | Enable Nitro Enclaves |
+| `enable_primary_ipv6` | `bool` | ❌ No | `null` | Enable IPv6 Global Unicast Address |
+| `ephemeral_block_device` | `map(object)` | ❌ No | `null` | Instance store volumes |
+| `get_password_data` | `bool` | ❌ No | `null` | Get password data |
+| `hibernation` | `bool` | ❌ No | `null` | Enable hibernation support |
+| `host_id` | `string` | ❌ No | `null` | Dedicated host ID |
+| `host_resource_group_arn` | `string` | ❌ No | `null` | Host resource group ARN |
+| `instance_initiated_shutdown_behavior` | `string` | ❌ No | `null` | Shutdown behavior |
+| `instance_market_options` | `object` | ❌ No | `null` | Market purchasing options |
+| `ipv6_address_count` | `number` | ❌ No | `null` | Number of IPv6 addresses |
+| `ipv6_addresses` | `list(string)` | ❌ No | `null` | Specific IPv6 addresses |
+| `launch_template` | `object` | ❌ No | `null` | Launch template configuration |
+| `maintenance_options` | `object` | ❌ No | `null` | Maintenance options |
+| `network_interface` | `map(object)` | ❌ No | `null` | Network interface configuration |
+| `placement_group` | `string` | ❌ No | `null` | Placement group |
+| `placement_partition_number` | `number` | ❌ No | `null` | Placement partition number |
+| `private_dns_name_options` | `object` | ❌ No | `null` | Private DNS name options |
+| `private_ip` | `string` | ❌ No | `null` | Private IP address |
+| `secondary_private_ips` | `list(string)` | ❌ No | `null` | Secondary private IPs |
+| `source_dest_check` | `bool` | ❌ No | `null` | Source/destination check |
+| `tenancy` | `string` | ❌ No | `null` | Instance tenancy |
 
 ### **💰 Spot Instance Variables**
 
@@ -646,6 +678,17 @@ logging = {
 | `spot_wait_for_fulfillment` | `bool` | ❌ No | `null` | Wait for spot fulfillment |
 | `spot_valid_from` | `string` | ❌ No | `null` | Spot valid from date |
 | `spot_valid_until` | `string` | ❌ No | `null` | Spot valid until date |
+
+### **🔐 IAM Instance Profile Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |
+| `instance_profile_use_name_prefix` | `bool` | ❌ No | `true` | Use name prefix for profile |
+| `instance_profile_path` | `string` | ❌ No | `null` | Instance profile path |
+| `instance_profile_tags` | `map(string)` | ❌ No | `{}` | Instance profile tags |
+| `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
+| `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create profile for existing role |
 
 ### **🌐 Elastic IP Variables**
 
@@ -662,6 +705,110 @@ logging = {
 | `instance_tags` | `map(string)` | ❌ No | `{}` | Additional instance tags |
 | `volume_tags` | `map(string)` | ❌ No | `{}` | Volume tags |
 | `enable_volume_tags` | `bool` | ❌ No | `true` | Enable volume tagging |
+
+### **📊 Monitoring Module Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_monitoring_module` | `bool` | ❌ No | `false` | Enable monitoring module |
+| `monitoring` | `object` | ❌ No | `{}` | Monitoring configuration object |
+
+### **📝 Logging Module Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_logging_module` | `bool` | ❌ No | `false` | Enable logging module |
+| `logging` | `object` | ❌ No | `{}` | Logging configuration object |
+
+### **📋 Monitoring Object Configuration**
+
+The `monitoring` object contains all monitoring-related configurations:
+
+#### **🔐 CloudWatch Agent IAM Role:**
+- `create_cloudwatch_agent_role` - Create IAM role for CloudWatch agent
+- `cloudwatch_agent_role_name` - Role name
+- `cloudwatch_agent_role_path` - Role path
+- `cloudwatch_agent_role_description` - Role description
+- `cloudwatch_agent_role_tags` - Role tags
+- `cloudwatch_agent_policies` - Policies to attach
+
+#### **📊 CloudWatch Dashboard:**
+- `create_dashboard` - Create CloudWatch dashboard
+- `dashboard_name` - Dashboard name
+- `dashboard_tags` - Dashboard tags
+
+#### **🚨 CloudWatch Alarms:**
+- `create_cpu_alarms` - Create CPU utilization alarms
+- `cpu_alarm_threshold` - CPU threshold percentage
+- `cpu_alarm_period` - Alarm evaluation period
+- `create_memory_alarms` - Create memory utilization alarms
+- `memory_alarm_threshold` - Memory threshold percentage
+- `create_disk_alarms` - Create disk utilization alarms
+- `disk_alarm_threshold` - Disk threshold percentage
+- `alarm_actions` - Actions to take when alarm triggers
+- `ok_actions` - Actions to take when alarm clears
+
+#### **📝 CloudWatch Log Groups:**
+- `create_log_groups` - Create CloudWatch log groups
+- `log_groups` - Map of log group configurations
+
+#### **📢 SNS Topics:**
+- `create_sns_topic` - Create SNS topic for notifications
+- `sns_topic_name` - Topic name
+- `sns_subscriptions` - Topic subscriptions
+
+#### **⚙️ CloudWatch Agent Configuration:**
+- `create_cloudwatch_agent_config` - Create agent configuration
+- `cloudwatch_agent_config_parameter_name` - SSM parameter name
+- `cloudwatch_agent_config_log_groups` - Log groups to monitor
+- `cloudwatch_agent_config_metrics` - Metrics to collect
+
+### **📋 Logging Object Configuration**
+
+The `logging` object contains all logging-related configurations:
+
+#### **📝 CloudWatch Logs:**
+- `create_cloudwatch_log_groups` - Create CloudWatch log groups
+- `cloudwatch_log_groups` - Map of log group configurations
+
+#### **🪣 S3 Logging:**
+- `create_s3_logging_bucket` - Create S3 bucket for logging
+- `use_existing_s3_bucket` - Use existing S3 bucket
+- `existing_s3_bucket_name` - Existing bucket name
+- `existing_s3_bucket_arn` - Existing bucket ARN
+- `s3_logging_bucket_name` - New bucket name
+- `s3_logging_bucket_versioning` - Enable versioning
+- `s3_logging_bucket_encryption_algorithm` - Encryption algorithm
+- `s3_logging_bucket_lifecycle_rules` - Lifecycle rules
+
+#### **🔐 Logging IAM Role:**
+- `create_logging_iam_role` - Create IAM role for logging
+- `logging_iam_role_name` - Role name
+- `logging_iam_role_path` - Role path
+- `logging_iam_role_description` - Role description
+- `logging_iam_role_tags` - Role tags
+- `logging_iam_role_policies` - Policies to attach
+
+#### **⚙️ Logging Agent Configuration:**
+- `create_logging_agent_config` - Create agent configuration
+- `logging_agent_config_parameter_name` - SSM parameter name
+- `logging_agent_config_logs` - Log files to monitor
+
+#### **🚨 Logging Alarms:**
+- `create_logging_alarms` - Create log error alarms
+- `logging_alarm_threshold` - Error threshold
+- `logging_alarm_period` - Alarm evaluation period
+- `logging_alarm_actions` - Actions to take when alarm triggers
+
+#### **📢 Logging SNS:**
+- `create_logging_sns_topic` - Create SNS topic for logging
+- `logging_sns_topic_name` - Topic name
+- `logging_sns_subscriptions` - Topic subscriptions
+
+#### **📊 Logging Dashboard:**
+- `create_logging_dashboard` - Create logging dashboard
+- `logging_dashboard_name` - Dashboard name
+- `logging_dashboard_tags` - Dashboard tags
 
 ### **⏱️ Timeout Variables**
 
@@ -719,6 +866,7 @@ See the `examples/` directory for complete configuration examples:
 - `basic.tfvars` - Basic instance creation
 - `with-user-data.tfvars` - **EC2 instances with inline user data commands**
 - `custom-system-tags.tfvars` - **Complete customization of all system tags and configuration**
+- `comprehensive-config.tfvars` - **ALL variables from variables.tf with complete configuration**
 - `with-monitoring.tfvars` - With monitoring enabled
 - `with-logging.tfvars` - With logging enabled
 - `adaptive-iam.tfvars` - With adaptive IAM
