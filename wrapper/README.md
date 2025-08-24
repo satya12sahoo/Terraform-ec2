@@ -222,23 +222,23 @@ graph TD
     B --> C{Parse All Variables}
     
     %% Core Variables
-    C --> D[Core Variables<br/>aws_region, environment, project_name, create]
+    C --> D[Core Variables<br/>aws_region, environment, project_name, create, region]
     C --> E[Instance Configurations<br/>instances map with all settings]
     C --> F[Global Settings<br/>global_settings object]
-    C --> F1[System Tags Variables<br/>managed_by_tag, feature_tag, ec2_service_principal]
+    C --> F1[System Tags Variables<br/>managed_by_tag, feature_tag, ec2_service_principal, assume_role_policy_version, default_role_name]
     
     %% Advanced Variables
     C --> G[Advanced Variables<br/>ami_ssm_parameter, ignore_ami_changes, capacity_reservation_specification]
-    C --> H[CPU & Network Variables<br/>cpu_options, cpu_credits, enable_primary_ipv6, network_interface]
-    C --> I[Instance Options<br/>hibernation, tenancy, placement_group, maintenance_options]
+    C --> H[CPU & Network Variables<br/>cpu_options, cpu_credits, enable_primary_ipv6, network_interface, ipv6_address_count, ipv6_addresses]
+    C --> I[Instance Options<br/>hibernation, tenancy, placement_group, maintenance_options, launch_template, private_dns_name_options]
     
     %% IAM Variables
-    C --> J[IAM Configuration<br/>iam_role_name, iam_role_policies, iam_role_tags]
-    C --> K[Adaptive IAM Variables<br/>enable_smart_iam, smart_iam_role_name, smart_iam_force_create_role]
-    C --> L[Existing IAM Variables<br/>existing_iam_role_name, create_instance_profile_for_existing_role]
+    C --> J[IAM Configuration<br/>iam_role_name, iam_role_use_name_prefix, iam_role_path, iam_role_description, iam_role_permissions_boundary, iam_role_policies, iam_role_tags]
+    C --> K[Adaptive IAM Variables<br/>enable_smart_iam, smart_iam_role_name, smart_iam_role_description, smart_iam_role_path, smart_iam_role_policies, smart_iam_role_permissions_boundary, smart_iam_role_tags, smart_instance_profile_tags, smart_iam_force_create_role]
+    C --> L[Existing IAM Variables<br/>existing_iam_role_name, create_instance_profile_for_existing_role, instance_profile_name, instance_profile_use_name_prefix, instance_profile_path, instance_profile_tags]
     
     %% Security Group Variables
-    C --> M[Security Group Variables<br/>create_security_group, security_group_name, security_group_ingress_rules]
+    C --> M[Security Group Variables<br/>create_security_group, security_group_name, security_group_use_name_prefix, security_group_description, security_group_vpc_id, security_group_tags, security_group_ingress_rules, security_group_egress_rules]
     
     %% Monitoring Variables
     C --> N[Monitoring Variables<br/>enable_monitoring_module, monitoring object]
@@ -247,153 +247,154 @@ graph TD
     C --> O[Logging Variables<br/>enable_logging_module, logging object]
     
     %% User Data Variables
-    C --> P[User Data Variables<br/>enable_user_data_template, user_data_template_path, user_data]
+    C --> P[User Data Variables<br/>enable_user_data_template, user_data_template_path, user_data, user_data_base64, user_data_replace_on_change]
     
     %% Spot Instance Variables
-    C --> Q[Spot Instance Variables<br/>create_spot_instance, spot_price, spot_type, spot_wait_for_fulfillment]
+    C --> Q[Spot Instance Variables<br/>create_spot_instance, spot_instance_interruption_behavior, spot_launch_group, spot_price, spot_type, spot_wait_for_fulfillment, spot_valid_from, spot_valid_until]
     
     %% Elastic IP Variables
     C --> R[Elastic IP Variables<br/>create_eip, eip_domain, eip_tags]
     
+    %% Additional Variables
+    C --> S1[Additional Variables<br/>instance_market_options, ephemeral_block_device, get_password_data, host_id, host_resource_group_arn, instance_initiated_shutdown_behavior, private_ip, secondary_private_ips, source_dest_check, instance_tags, volume_tags, enable_volume_tags, timeouts]
+    
     %% Merge and Process
-    D --> S[Merge Global with Instance Configs]
-    E --> S
-    F --> S
-    F1 --> S
-    G --> S
-    H --> S
-    I --> S
+    D --> T[Merge Global with Instance Configs]
+    E --> T
+    F --> T
+    F1 --> T
+    G --> T
+    H --> T
+    I --> T
+    S1 --> T
     
     %% IAM Decision Logic
-    J --> T{IAM Strategy Decision}
-    K --> T
-    L --> T
+    J --> U{IAM Strategy Decision}
+    K --> U
+    L --> U
     
-    T --> U{enable_smart_iam?}
-    U -->|Yes| V[Adaptive IAM Logic<br/>Check smart_iam_role_name existence]
-    U -->|No| W{existing_iam_role_name?}
+    U --> V{enable_smart_iam?}
+    V -->|Yes| W[Adaptive IAM Logic<br/>Check smart_iam_role_name existence]
+    V -->|No| X{existing_iam_role_name?}
     
-    V --> X{smart_iam_role_name exists?}
-    X -->|Yes| Y[Use Existing Role]
-    X -->|No| Z{smart_iam_role_name Profile exists?}
-    Z -->|Yes| AA[Create Role for Profile]
-    Z -->|No| BB[Create Both Role & Profile]
+    W --> Y{smart_iam_role_name exists?}
+    Y -->|Yes| Z[Use Existing Role]
+    Y -->|No| AA{smart_iam_role_name Profile exists?}
+    AA -->|Yes| BB[Create Role for Profile]
+    AA -->|No| CC[Create Both Role & Profile]
     
-    W -->|Yes| CC[Create Instance Profile for Role]
-    W -->|No| DD{iam_instance_profile?}
-    DD -->|Yes| EE[Use Existing Profile]
-    DD -->|No| FF[No IAM Resources]
+    X -->|Yes| DD[Create Instance Profile for Role]
+    X -->|No| EE{iam_instance_profile?}
+    EE -->|Yes| FF[Use Existing Profile]
+    EE -->|No| GG[No IAM Resources]
     
     %% Security Group Decision Logic
-    M --> GG{Security Group Strategy}
-    GG --> HH{create_security_group?}
-    HH -->|Yes| II[Create security_group_name<br/>with security_group_ingress_rules<br/>and security_group_egress_rules]
-    HH -->|No| JJ[Use vpc_security_group_ids from instances]
+    M --> HH{Security Group Strategy}
+    HH --> II{create_security_group?}
+    II -->|Yes| JJ[Create security_group_name<br/>with security_group_ingress_rules<br/>and security_group_egress_rules]
+    II -->|No| KK[Use vpc_security_group_ids from instances]
     
     %% Monitoring Decision Logic
-    N --> KK{enable_monitoring_module?}
-    KK -->|Yes| LL[Monitoring Module Processing<br/>Create monitoring.* resources]
-    KK -->|No| MM[Skip Monitoring]
+    N --> LL{enable_monitoring_module?}
+    LL -->|Yes| MM[Monitoring Module Processing<br/>Create monitoring.* resources]
+    LL -->|No| NN[Skip Monitoring]
     
-    LL --> NN[Create CloudWatch Agent Role<br/>monitoring.cloudwatch_agent_role_name]
-    LL --> OO[Create CloudWatch Dashboard<br/>monitoring.dashboard_name]
-    LL --> PP[Create CloudWatch Alarms<br/>monitoring.cpu_alarm_name, memory_alarm_name, disk_alarm_name]
-    LL --> QQ[Create CloudWatch Log Groups<br/>monitoring.log_groups]
-    LL --> RR[Create SNS Topic<br/>monitoring.sns_topic_name]
-    LL --> SS[Create Agent Configuration<br/>monitoring.cloudwatch_agent_config_parameter_name]
+    MM --> OO[Create CloudWatch Agent Role<br/>monitoring.cloudwatch_agent_role_name]
+    MM --> PP[Create CloudWatch Dashboard<br/>monitoring.dashboard_name]
+    MM --> QQ[Create CloudWatch Alarms<br/>monitoring.cpu_alarm_name, memory_alarm_name, disk_alarm_name]
+    MM --> RR[Create CloudWatch Log Groups<br/>monitoring.log_groups]
+    MM --> SS[Create SNS Topic<br/>monitoring.sns_topic_name]
+    MM --> TT[Create Agent Configuration<br/>monitoring.cloudwatch_agent_config_parameter_name]
     
     %% Logging Decision Logic
-    O --> TT{enable_logging_module?}
-    TT -->|Yes| UU[Logging Module Processing<br/>Create logging.* resources]
-    TT -->|No| VV[Skip Logging]
+    O --> UU{enable_logging_module?}
+    UU -->|Yes| VV[Logging Module Processing<br/>Create logging.* resources]
+    UU -->|No| WW[Skip Logging]
     
-    UU --> WW{logging.create_s3_logging_bucket?}
-    WW -->|Yes| XX[Create S3 Bucket<br/>logging.s3_logging_bucket_name]
-    WW -->|No| YY{logging.use_existing_s3_bucket?}
-    YY -->|Yes| ZZ[Use Existing S3 Bucket<br/>logging.existing_s3_bucket_name]
-    YY -->|No| AAA[No S3 Bucket]
+    VV --> XX{logging.create_s3_logging_bucket?}
+    XX -->|Yes| YY[Create S3 Bucket<br/>logging.s3_logging_bucket_name]
+    XX -->|No| ZZ{logging.use_existing_s3_bucket?}
+    ZZ -->|Yes| AAA[Use Existing S3 Bucket<br/>logging.existing_s3_bucket_name]
+    ZZ -->|No| BBB[No S3 Bucket]
     
-    UU --> BBB[Create CloudWatch Log Groups<br/>logging.cloudwatch_log_groups]
-    UU --> CCC[Create Logging IAM Role<br/>logging.logging_iam_role_name]
-    UU --> DDD[Create Logging Agent Config<br/>logging.logging_agent_config_parameter_name]
-    UU --> EEE[Create Log Alarms<br/>logging.logging_alarm_name]
-    UU --> FFF[Create Logging Dashboard<br/>logging.logging_dashboard_name]
+    VV --> CCC[Create CloudWatch Log Groups<br/>logging.cloudwatch_log_groups]
+    VV --> DDD[Create Logging IAM Role<br/>logging.logging_iam_role_name]
+    VV --> EEE[Create Logging Agent Config<br/>logging.logging_agent_config_parameter_name]
+    VV --> FFF[Create Log Alarms<br/>logging.logging_alarm_name]
+    VV --> GGG[Create Logging Dashboard<br/>logging.logging_dashboard_name]
     
     %% User Data Processing
-    P --> GGG{enable_user_data_template?}
-    GGG -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
-    GGG -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
+    P --> HHH{enable_user_data_template?}
+    HHH -->|Yes| III[Process Template<br/>user_data_template_path with user_data_template_vars]
+    HHH -->|No| JJJ[Use Raw User Data<br/>user_data or user_data_base64]
     
     %% Spot Instance Processing
-    Q --> JJJ{create_spot_instance?}
-    JJJ -->|Yes| KKK[Configure Spot Instance<br/>spot_price, spot_type, spot_wait_for_fulfillment]
-    JJJ -->|No| LLL[Regular On-Demand Instance]
+    Q --> KKK{create_spot_instance?}
+    KKK -->|Yes| LLL[Configure Spot Instance<br/>spot_price, spot_type, spot_wait_for_fulfillment]
+    KKK -->|No| MMM[Regular On-Demand Instance]
     
     %% Elastic IP Processing
-    R --> MMM{create_eip?}
-    MMM -->|Yes| NNN[Create Elastic IP<br/>eip_domain, eip_tags]
-    MMM -->|No| OOO[No Elastic IP]
+    R --> NNN{create_eip?}
+    NNN -->|Yes| OOO[Create Elastic IP<br/>eip_domain, eip_tags]
+    NNN -->|No| PPP[No Elastic IP]
     
     %% Resource Creation
-    Y --> PPP[Final IAM Configuration]
-    AA --> PPP
-    BB --> PPP
-    CC --> PPP
-    EE --> PPP
-    FF --> PPP
+    Z --> QQQ[Final IAM Configuration]
+    BB --> QQQ
+    CC --> QQQ
+    DD --> QQQ
+    FF --> QQQ
+    GG --> QQQ
     
-    II --> QQQ[Final Security Group Configuration]
-    JJ --> QQQ
+    JJ --> RRR[Final Security Group Configuration]
+    KK --> RRR
     
-    NN --> RRR[Monitoring Resources Created]
-    OO --> RRR
-    PP --> RRR
-    QQ --> RRR
-    RR --> RRR
-    SS --> RRR
+    OO --> SSS[Monitoring Resources Created]
+    PP --> SSS
+    QQ --> SSS
+    RR --> SSS
+    SS --> SSS
+    TT --> SSS
     
-    XX --> SSS[Logging Resources Created]
-    ZZ --> SSS
-    AAA --> SSS
-    BBB --> SSS
-    CCC --> SSS
-    DDD --> SSS
-    EEE --> SSS
-    FFF --> SSS
+    YY --> TTT[Logging Resources Created]
+    AAA --> TTT
+    BBB --> TTT
+    CCC --> TTT
+    DDD --> TTT
+    EEE --> TTT
+    FFF --> TTT
+    GGG --> TTT
     
-    HHH --> TTT[User Data Processed]
-    III --> TTT
+    III --> UUU[User Data Processed]
+    JJJ --> UUU
     
-    KKK --> UUU[Spot Instance Configured]
-    LLL --> UUU
+    LLL --> VVV[Spot Instance Configured]
+    MMM --> VVV
     
-    NNN --> VVV[Elastic IP Created]
-    OOO --> VVV
+    OOO --> WWW[Elastic IP Created]
+    PPP --> WWW
     
     %% Final EC2 Creation
-    S --> WWW[Base EC2 Module]
-    PPP --> WWW
-    QQQ --> WWW
-    RRR --> WWW
-    SSS --> WWW
-    TTT --> WWW
-    UUU --> WWW
-    VVV --> WWW
-    MM --> WWW
-    VV --> WWW
+    T --> XXX[Base EC2 Module]
+    QQQ --> XXX
+    RRR --> XXX
+    SSS --> XXX
+    TTT --> XXX
+    UUU --> XXX
+    VVV --> XXX
+    WWW --> XXX
+    NN --> XXX
+    WW --> XXX
     
-    WWW --> XXX[EC2 Instances Created<br/>with all configurations applied]
-    XXX --> YYY[Generate Comprehensive Outputs<br/>instance_ids, iam_resources, security_groups, monitoring, logging]
+    XXX --> YYY[EC2 Instances Created<br/>with all configurations applied]
+    YYY --> ZZZ[Generate Comprehensive Outputs<br/>instance_ids, iam_resources, security_groups, monitoring, logging]
     
     %% Styling
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style U,HH,KK,TT,GGG,JJJ,MMM fill:#ffebee,stroke:#e65100,stroke-width:2px
-    style LL,UU fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    style WWW fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    style YYY fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
-```
-
-## ⚙️ Configuration
+    style V,II,LL,UU,HHH,KKK,NNN fill:#ffebee,stroke:#e65100,stroke-width:2px
+    style MM,VV fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px
+    style XXX fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    style ZZZ fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px## ⚙️ Configuration
 
 ### **Basic Usage**
 
