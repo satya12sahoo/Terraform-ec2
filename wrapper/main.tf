@@ -368,3 +368,89 @@ module "monitoring" {
   cloudwatch_agent_config_log_groups = var.monitoring.cloudwatch_agent_config_log_groups
   cloudwatch_agent_config_metrics = var.monitoring.cloudwatch_agent_config_metrics
 }
+
+# =============================================================================
+# LOGGING MODULE INTEGRATION
+# =============================================================================
+
+module "logging" {
+  count = var.enable_logging_module ? 1 : 0
+  source = "../logging"
+  
+  aws_region = var.aws_region
+  environment = var.environment
+  instance_ids = values(module.ec2_instances)[*].id
+  
+  # CloudWatch Logs Configuration
+  create_cloudwatch_log_groups = var.logging.create_cloudwatch_log_groups
+  cloudwatch_log_groups = var.logging.cloudwatch_log_groups
+  
+  # S3 Logging Configuration
+  create_s3_logging_bucket = var.logging.create_s3_logging_bucket
+  s3_logging_bucket_name = var.logging.s3_logging_bucket_name
+  s3_logging_bucket_name_prefix = var.logging.s3_logging_bucket_name_prefix
+  s3_logging_bucket_use_name_prefix = var.logging.s3_logging_bucket_use_name_prefix
+  s3_logging_bucket_tags = var.logging.s3_logging_bucket_tags
+  s3_logging_bucket_versioning = var.logging.s3_logging_bucket_versioning
+  s3_logging_bucket_encryption_algorithm = var.logging.s3_logging_bucket_encryption_algorithm
+  s3_logging_bucket_kms_key_id = var.logging.s3_logging_bucket_kms_key_id
+  s3_logging_bucket_bucket_key_enabled = var.logging.s3_logging_bucket_bucket_key_enabled
+  s3_logging_bucket_block_public_access = var.logging.s3_logging_bucket_block_public_access
+  s3_logging_bucket_lifecycle_rules = var.logging.s3_logging_bucket_lifecycle_rules
+  s3_logging_upload_frequency = var.logging.s3_logging_upload_frequency
+  s3_logging_compression = var.logging.s3_logging_compression
+  
+  # Logging IAM Role Configuration
+  create_logging_iam_role = var.logging.create_logging_iam_role
+  logging_iam_role_name = var.logging.logging_iam_role_name
+  logging_iam_role_name_prefix = var.logging.logging_iam_role_name_prefix
+  logging_iam_role_use_name_prefix = var.logging.logging_iam_role_use_name_prefix
+  logging_iam_role_path = var.logging.logging_iam_role_path
+  logging_iam_role_description = var.logging.logging_iam_role_description
+  logging_iam_role_tags = var.logging.logging_iam_role_tags
+  logging_iam_role_policies = var.logging.logging_iam_role_policies
+  
+  # Logging Instance Profile Configuration
+  logging_instance_profile_name = var.logging.logging_instance_profile_name
+  logging_instance_profile_name_prefix = var.logging.logging_instance_profile_name_prefix
+  logging_instance_profile_use_name_prefix = var.logging.logging_instance_profile_use_name_prefix
+  logging_instance_profile_path = var.logging.logging_instance_profile_path
+  logging_instance_profile_tags = var.logging.logging_instance_profile_tags
+  
+  # Logging Agent Configuration
+  create_logging_agent_config = var.logging.create_logging_agent_config
+  logging_agent_config_parameter_name = var.logging.logging_agent_config_parameter_name
+  logging_agent_config_parameter_name_prefix = var.logging.logging_agent_config_parameter_name_prefix
+  logging_agent_config_parameter_use_name_prefix = var.logging.logging_agent_config_parameter_use_name_prefix
+  logging_agent_config_parameter_tags = var.logging.logging_agent_config_parameter_tags
+  logging_agent_config_logs = var.logging.logging_agent_config_logs
+  
+  # Logging Alarms Configuration
+  create_logging_alarms = var.logging.create_logging_alarms
+  logging_alarm_name = var.logging.logging_alarm_name
+  logging_alarm_name_prefix = var.logging.logging_alarm_name_prefix
+  logging_alarm_use_name_prefix = var.logging.logging_alarm_use_name_prefix
+  logging_alarm_description = var.logging.logging_alarm_description
+  logging_alarm_threshold = var.logging.logging_alarm_threshold
+  logging_alarm_period = var.logging.logging_alarm_period
+  logging_alarm_evaluation_periods = var.logging.logging_alarm_evaluation_periods
+  logging_alarm_actions = var.logging.logging_alarm_actions
+  logging_ok_actions = var.logging.logging_ok_actions
+  logging_alarm_tags = var.logging.logging_alarm_tags
+  
+  # Logging SNS Configuration
+  create_logging_sns_topic = var.logging.create_logging_sns_topic
+  logging_sns_topic_name = var.logging.logging_sns_topic_name
+  logging_sns_topic_name_prefix = var.logging.logging_sns_topic_name_prefix
+  logging_sns_topic_use_name_prefix = var.logging.logging_sns_topic_use_name_prefix
+  logging_sns_topic_tags = var.logging.logging_sns_topic_tags
+  logging_sns_subscriptions = var.logging.logging_sns_subscriptions
+  logging_sns_subscription_tags = var.logging.logging_sns_subscription_tags
+  
+  # Logging Dashboard Configuration
+  create_logging_dashboard = var.logging.create_logging_dashboard
+  logging_dashboard_name = var.logging.logging_dashboard_name
+  logging_dashboard_name_prefix = var.logging.logging_dashboard_name_prefix
+  logging_dashboard_use_name_prefix = var.logging.logging_dashboard_use_name_prefix
+  logging_dashboard_tags = var.logging.logging_dashboard_tags
+}

@@ -268,3 +268,92 @@ output "monitoring_summary" {
   description = "Summary of monitoring resources created"
   value = var.enable_monitoring_module ? module.monitoring[0].monitoring_summary : null
 }
+
+# =============================================================================
+# LOGGING MODULE OUTPUTS
+# =============================================================================
+
+output "logging_enabled" {
+  description = "Whether logging module is enabled"
+  value = var.enable_logging_module
+}
+
+output "logging_cloudwatch_log_group_arns" {
+  description = "ARNs of created CloudWatch log groups from logging module"
+  value = var.enable_logging_module ? module.logging[0].cloudwatch_log_group_arns : {}
+}
+
+output "logging_cloudwatch_log_group_names" {
+  description = "Names of created CloudWatch log groups from logging module"
+  value = var.enable_logging_module ? module.logging[0].cloudwatch_log_group_names : {}
+}
+
+output "logging_s3_bucket_arn" {
+  description = "ARN of the S3 logging bucket"
+  value = var.enable_logging_module ? module.logging[0].s3_logging_bucket_arn : null
+}
+
+output "logging_s3_bucket_name" {
+  description = "Name of the S3 logging bucket"
+  value = var.enable_logging_module ? module.logging[0].s3_logging_bucket_name : null
+}
+
+output "logging_iam_role_arn" {
+  description = "ARN of the logging IAM role"
+  value = var.enable_logging_module ? module.logging[0].logging_iam_role_arn : null
+}
+
+output "logging_iam_role_name" {
+  description = "Name of the logging IAM role"
+  value = var.enable_logging_module ? module.logging[0].logging_iam_role_name : null
+}
+
+output "logging_instance_profile_arn" {
+  description = "ARN of the logging instance profile"
+  value = var.enable_logging_module ? module.logging[0].logging_instance_profile_arn : null
+}
+
+output "logging_instance_profile_name" {
+  description = "Name of the logging instance profile"
+  value = var.enable_logging_module ? module.logging[0].logging_instance_profile_name : null
+}
+
+output "logging_agent_config_parameter_name" {
+  description = "Name of the logging agent configuration parameter"
+  value = var.enable_logging_module ? module.logging[0].logging_agent_config_parameter_name : null
+}
+
+output "logging_alarm_arns" {
+  description = "ARNs of created logging alarms"
+  value = var.enable_logging_module ? module.logging[0].logging_alarm_arns : {}
+}
+
+output "logging_alarm_names" {
+  description = "Names of created logging alarms"
+  value = var.enable_logging_module ? module.logging[0].logging_alarm_names : {}
+}
+
+output "logging_sns_topic_arn" {
+  description = "ARN of the logging SNS topic"
+  value = var.enable_logging_module ? module.logging[0].logging_sns_topic_arn : null
+}
+
+output "logging_sns_topic_name" {
+  description = "Name of the logging SNS topic"
+  value = var.enable_logging_module ? module.logging[0].logging_sns_topic_name : null
+}
+
+output "logging_dashboard_arn" {
+  description = "ARN of the logging dashboard"
+  value = var.enable_logging_module ? module.logging[0].logging_dashboard_arn : null
+}
+
+output "logging_dashboard_name" {
+  description = "Name of the logging dashboard"
+  value = var.enable_logging_module ? module.logging[0].logging_dashboard_name : null
+}
+
+output "logging_summary" {
+  description = "Comprehensive summary of all logging resources"
+  value = var.enable_logging_module ? module.logging[0].logging_summary : null
+}

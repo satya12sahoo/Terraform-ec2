@@ -802,4 +802,140 @@ variable "monitoring" {
     })), {})
   })
   default = {}
+  
+  # =============================================================================
+  # LOGGING MODULE CONFIGURATION
+  # =============================================================================
+  
+  variable "enable_logging_module" {
+    description = "Whether to enable the logging module"
+    type        = bool
+    default     = false
+  }
+  
+  variable "logging" {
+    description = "Configuration for the logging module"
+    type = object({
+      # CloudWatch Logs Configuration
+      create_cloudwatch_log_groups = optional(bool, true)
+      cloudwatch_log_groups = optional(map(object({
+        name              = string
+        retention_in_days = number
+        kms_key_id        = optional(string)
+        tags              = optional(map(string), {})
+      })), {})
+      
+      # S3 Logging Configuration
+      create_s3_logging_bucket = optional(bool, false)
+      s3_logging_bucket_name = optional(string)
+      s3_logging_bucket_name_prefix = optional(string, "logging-bucket-")
+      s3_logging_bucket_use_name_prefix = optional(bool, true)
+      s3_logging_bucket_tags = optional(map(string), {})
+      s3_logging_bucket_versioning = optional(bool, true)
+      s3_logging_bucket_encryption_algorithm = optional(string, "AES256")
+      s3_logging_bucket_kms_key_id = optional(string)
+      s3_logging_bucket_bucket_key_enabled = optional(bool, true)
+      s3_logging_bucket_block_public_access = optional(bool, true)
+      s3_logging_bucket_lifecycle_rules = optional(list(object({
+        id = string
+        status = string
+        transitions = optional(list(object({
+          days          = number
+          storage_class = string
+        })), [])
+        expiration = optional(object({
+          days = number
+        }), null)
+        noncurrent_version_transitions = optional(list(object({
+          noncurrent_days = number
+          storage_class   = string
+        })), [])
+        noncurrent_version_expiration = optional(object({
+          noncurrent_days = number
+        }), null)
+      })), [])
+      s3_logging_upload_frequency = optional(string, "5m")
+      s3_logging_compression = optional(string, "gzip")
+      
+      # Logging IAM Role Configuration
+      create_logging_iam_role = optional(bool, true)
+      logging_iam_role_name = optional(string, "ec2-logging-role")
+      logging_iam_role_name_prefix = optional(string, "logging-role-")
+      logging_iam_role_use_name_prefix = optional(bool, false)
+      logging_iam_role_path = optional(string, "/")
+      logging_iam_role_description = optional(string, "IAM role for EC2 logging services")
+      logging_iam_role_tags = optional(map(string), {})
+      logging_iam_role_policies = optional(map(string), {})
+      
+      # Logging Instance Profile Configuration
+      logging_instance_profile_name = optional(string)
+      logging_instance_profile_name_prefix = optional(string, "logging-profile-")
+      logging_instance_profile_use_name_prefix = optional(bool, false)
+      logging_instance_profile_path = optional(string, "/")
+      logging_instance_profile_tags = optional(map(string), {})
+      
+      # Logging Agent Configuration
+      create_logging_agent_config = optional(bool, true)
+      logging_agent_config_parameter_name = optional(string, "/ec2/logging/agent-config")
+      logging_agent_config_parameter_name_prefix = optional(string, "logging-config-")
+      logging_agent_config_parameter_use_name_prefix = optional(bool, false)
+      logging_agent_config_parameter_tags = optional(map(string), {})
+      logging_agent_config_logs = optional(map(object({
+        file_path = string
+        log_group_name = string
+        log_stream_name = string
+        timezone = optional(string, "UTC")
+        timestamp_format = optional(string)
+        multi_line_start_pattern = optional(string)
+        encoding = optional(string, "utf-8")
+        buffer_duration = optional(string, "5000")
+        batch_count = optional(number, 1000)
+        batch_size = optional(number, 32768)
+        tags = optional(map(string), {})
+      })), {})
+      
+      # Logging Alarms Configuration
+      create_logging_alarms = optional(bool, true)
+      logging_alarm_name = optional(string)
+      logging_alarm_name_prefix = optional(string, "logging-alarm-")
+      logging_alarm_use_name_prefix = optional(bool, false)
+      logging_alarm_description = optional(string, "Log error count alarm")
+      logging_alarm_threshold = optional(number, 10)
+      logging_alarm_period = optional(number, 300)
+      logging_alarm_evaluation_periods = optional(number, 2)
+      logging_alarm_actions = optional(list(string), [])
+      logging_ok_actions = optional(list(string), [])
+      logging_alarm_tags = optional(map(string), {})
+      
+      # Logging SNS Configuration
+      create_logging_sns_topic = optional(bool, false)
+      logging_sns_topic_name = optional(string, "ec2-logging-notifications")
+      logging_sns_topic_name_prefix = optional(string, "logging-topic-")
+      logging_sns_topic_use_name_prefix = optional(bool, false)
+      logging_sns_topic_tags = optional(map(string), {})
+      logging_sns_subscriptions = optional(map(object({
+        protocol = string
+        endpoint = string
+        filter_policy = optional(string)
+        tags = optional(map(string), {})
+      })), {})
+      logging_sns_subscription_tags = optional(map(string), {})
+      
+      # Logging Dashboard Configuration
+      create_logging_dashboard = optional(bool, true)
+      logging_dashboard_name = optional(string, "ec2-logging-dashboard")
+      logging_dashboard_name_prefix = optional(string, "logging-dashboard-")
+      logging_dashboard_use_name_prefix = optional(bool, false)
+      logging_dashboard_tags = optional(map(string), {})
+    })
+    default = {
+      create_cloudwatch_log_groups = true
+      create_logging_iam_role = true
+      create_logging_agent_config = true
+      create_logging_alarms = true
+      create_logging_dashboard = true
+      create_s3_logging_bucket = false
+      create_logging_sns_topic = false
+    }
+  }
 }

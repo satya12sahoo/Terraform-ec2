@@ -1429,6 +1429,144 @@ monitoring = {
 }
 ```
 
+## 📝 **Logging Module Integration**
+
+### **📊 Logging Features Available:**
+
+#### **1. CloudWatch Logs**
+- Centralized log collection with configurable retention
+- KMS encryption support for sensitive logs
+- Custom log group naming and tagging
+- Multi-instance log aggregation
+
+#### **2. S3 Logging Bucket**
+- Long-term log storage with lifecycle policies
+- Server-side encryption and versioning
+- Configurable compression and upload frequency
+- Public access blocking for security
+
+#### **3. Logging IAM Role & Instance Profile**
+- Dedicated IAM role for logging services
+- CloudWatch Logs and S3 permissions
+- Instance profile for EC2 instances
+- Custom policy attachments
+
+#### **4. Logging Agent Configuration**
+- Automated log collection setup
+- SSM Parameter Store integration
+- Custom log file configurations
+- Buffer and batch settings
+
+#### **5. Log Alarms & Notifications**
+- CloudWatch alarms for log error detection
+- SNS topic for log notifications
+- Email and webhook subscriptions
+- Custom alarm thresholds and periods
+
+#### **6. Logging Dashboard**
+- Visual dashboard for log metrics
+- Log error count visualization
+- Multi-instance log monitoring
+- Real-time log analysis
+
+### **🎯 How to Enable Logging:**
+
+```hcl
+# Enable logging module
+enable_logging_module = true
+
+# Configure logging with toggle features
+logging = {
+  # CloudWatch Logs (Toggle: create_cloudwatch_log_groups)
+  create_cloudwatch_log_groups = true
+  cloudwatch_log_groups = {
+    system = {
+      name = "/aws/ec2/production/system"
+      retention_in_days = 30
+    }
+    application = {
+      name = "/aws/ec2/production/application"
+      retention_in_days = 30
+    }
+  }
+  
+  # S3 Logging Bucket (Toggle: create_s3_logging_bucket)
+  create_s3_logging_bucket = true
+  s3_logging_bucket_name = "my-production-logs-2024"
+  s3_logging_bucket_versioning = true
+  s3_logging_bucket_encryption_algorithm = "AES256"
+  
+  # Logging IAM Role (Toggle: create_logging_iam_role)
+  create_logging_iam_role = true
+  logging_iam_role_name = "ec2-logging-role-production"
+  
+  # Logging Agent Config (Toggle: create_logging_agent_config)
+  create_logging_agent_config = true
+  logging_agent_config_parameter_name = "/ec2/logging/agent-config"
+  
+  # Log Alarms (Toggle: create_logging_alarms)
+  create_logging_alarms = true
+  logging_alarm_threshold = 5
+  logging_alarm_period = 300
+  
+  # SNS Notifications (Toggle: create_logging_sns_topic)
+  create_logging_sns_topic = true
+  logging_sns_topic_name = "ec2-logging-notifications"
+  
+  # Logging Dashboard (Toggle: create_logging_dashboard)
+  create_logging_dashboard = true
+  logging_dashboard_name = "ec2-logging-dashboard"
+}
+```
+
+### **🔄 Logging Toggle Features:**
+
+The logging module provides individual toggle controls for each component:
+
+#### **✅ Toggle Controls:**
+- **`create_cloudwatch_log_groups`** - Enable/disable CloudWatch log groups
+- **`create_s3_logging_bucket`** - Enable/disable S3 logging bucket
+- **`create_logging_iam_role`** - Enable/disable logging IAM role
+- **`create_logging_agent_config`** - Enable/disable agent configuration
+- **`create_logging_alarms`** - Enable/disable log alarms
+- **`create_logging_sns_topic`** - Enable/disable SNS notifications
+- **`create_logging_dashboard`** - Enable/disable logging dashboard
+
+#### **✅ Use Cases:**
+```hcl
+# Minimal logging (CloudWatch only)
+logging = {
+  create_cloudwatch_log_groups = true
+  create_s3_logging_bucket = false
+  create_logging_iam_role = false
+  create_logging_alarms = false
+  create_logging_sns_topic = false
+  create_logging_dashboard = false
+}
+
+# Full logging with S3 storage
+logging = {
+  create_cloudwatch_log_groups = true
+  create_s3_logging_bucket = true
+  create_logging_iam_role = true
+  create_logging_agent_config = true
+  create_logging_alarms = true
+  create_logging_sns_topic = true
+  create_logging_dashboard = true
+}
+
+# Logging with existing IAM role
+logging = {
+  create_cloudwatch_log_groups = true
+  create_s3_logging_bucket = true
+  create_logging_iam_role = false  # Use existing role
+  create_logging_agent_config = true
+  create_logging_alarms = true
+  create_logging_sns_topic = false
+  create_logging_dashboard = true
+}
+```
+
 ### **🏷️ Comprehensive Naming and Tagging Options:**
 
 The monitoring module provides extensive naming and tagging capabilities for all resources:
