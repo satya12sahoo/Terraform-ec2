@@ -504,7 +504,7 @@ variable "instance_profile_tags" {
   default     = {}
 }
 
-# Smart IAM feature variables (Google-like)
+# Smart IAM feature variables (Toggle)
 variable "enable_smart_iam" {
   description = "Enable smart IAM feature that automatically determines whether to create IAM role or just instance profile"
   type        = bool

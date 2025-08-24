@@ -1,4 +1,4 @@
-# Example: Smart IAM Feature (Google-like)
+# Example: Smart IAM Feature (Toggle)
 # This demonstrates the smart IAM feature that intelligently determines whether to create
 # an IAM role or just an instance profile based on what already exists
 

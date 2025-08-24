@@ -245,7 +245,7 @@ The wrapper exposes **ALL variables** from the base EC2 module. Here are the key
 - `instance_profile_use_name_prefix` - Use name prefix for instance profile
 - `instance_profile_path` - Instance profile path
 - `instance_profile_tags` - Instance profile tags
-- `enable_smart_iam` - Enable smart IAM feature (Google-like)
+- `enable_smart_iam` - Enable smart IAM feature (Toggle)
 - `smart_iam_role_name` - Name for role/instance profile in smart mode
 - `smart_iam_role_description` - Description for IAM role in smart mode
 - `smart_iam_role_path` - IAM role path in smart mode
@@ -544,6 +544,126 @@ terraform output existing_iam_role_arn
   ]
 }
 ```
+
+### Smart IAM Feature (Toggle)
+
+The **Toggle feature** is a smart IAM system that intelligently determines whether to create an IAM role or just an instance profile based on what already exists. It automatically handles different scenarios:
+
+#### **How the Toggle Feature Works:**
+
+1. **Scenario 1: IAM Role exists, Instance Profile doesn't**
+   - ✅ **Creates only the Instance Profile** and links it to the existing role
+   - No duplicate IAM role creation
+
+2. **Scenario 2: Instance Profile exists, IAM Role doesn't**
+   - ✅ **Creates the IAM Role** and links it to the existing instance profile
+   - No duplicate instance profile creation
+
+3. **Scenario 3: Neither exists**
+   - ✅ **Creates both IAM Role and Instance Profile** with proper linking
+
+4. **Scenario 4: Both exist**
+   - ✅ **Uses existing resources** (no creation, just linking)
+
+#### **Configuration:**
+
+```hcl
+# Enable the Toggle feature
+enable_smart_iam = true
+smart_iam_role_name = "my-smart-ec2-role"
+
+# Optional: Customize the IAM role (if created)
+smart_iam_role_description = "Smart IAM role for EC2 instances"
+smart_iam_role_path = "/"
+smart_iam_role_policies = {
+  "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Optional: Customize tags
+smart_iam_role_tags = {
+  Purpose = "Smart IAM Role"
+  CreatedBy = "Terraform"
+  Feature = "toggle"
+}
+
+smart_instance_profile_tags = {
+  Purpose = "Smart Instance Profile"
+  CreatedBy = "Terraform"
+  Feature = "toggle"
+}
+
+# Optional: Force role creation even if instance profile exists
+smart_iam_force_create_role = false
+```
+
+#### **Instance Configuration:**
+
+```hcl
+instances = {
+  web_server = {
+    # ... other configuration ...
+    
+    # Set to false - Toggle feature will handle IAM
+    create_iam_instance_profile = false
+    iam_role_policies = {}
+    
+    # ... rest of configuration ...
+  }
+}
+```
+
+#### **Toggle Feature Outputs:**
+
+```bash
+# See what decision the Toggle feature made
+terraform output smart_iam_decision
+
+# Get the instance profile details
+terraform output smart_iam_instance_profile_arn
+terraform output smart_iam_instance_profile_name
+
+# Get the IAM role details (if created)
+terraform output smart_iam_role_arn
+terraform output smart_iam_role_name
+
+# Get existing resource details (if found)
+terraform output smart_iam_existing_role_arn
+terraform output smart_iam_existing_profile_arn
+
+# Get the final instance profile used
+terraform output final_instance_profile_used
+```
+
+#### **Toggle Feature Decision Logic:**
+
+The Toggle feature makes intelligent decisions based on what exists:
+
+| Existing Resources | Toggle Action | Decision Output |
+|-------------------|---------------|-----------------|
+| ✅ Role exists<br>❌ Profile doesn't | Create Instance Profile | "Used existing IAM role" |
+| ❌ Role doesn't exist<br>✅ Profile exists | Create IAM Role | "Created IAM role for existing instance profile" |
+| ❌ Neither exists | Create Both | "Created new IAM role and instance profile" |
+| ✅ Both exist | Use Existing | "No action taken" |
+
+#### **Benefits of the Toggle Feature:**
+
+- 🎯 **No Duplicate Resources**: Never creates unnecessary duplicates
+- 🔄 **Automatic Detection**: Intelligently detects existing resources
+- ⚡ **Smart Creation**: Only creates what's missing
+- 🏷️ **Proper Tagging**: All resources are properly tagged
+- 📊 **Clear Feedback**: Outputs show exactly what was done
+- 🔧 **Flexible**: Can force creation if needed
+
+#### **Use Cases:**
+
+1. **Existing IAM Role**: You have an IAM role but no instance profile
+2. **Existing Instance Profile**: You have an instance profile but no IAM role
+3. **Fresh Start**: No existing resources, create everything
+4. **Mixed Environment**: Some resources exist, some don't
+
+The Toggle feature handles all these scenarios automatically! 🎉
 
 ### Dynamic Configuration Generation
 

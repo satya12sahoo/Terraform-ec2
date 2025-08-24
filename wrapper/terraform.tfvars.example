@@ -345,7 +345,7 @@ instance_profile_tags = {
   CreatedBy = "Terraform"
 }
 
-# Smart IAM feature configuration (Google-like)
+# Smart IAM feature configuration (Toggle)
 enable_smart_iam = true
 smart_iam_role_name = "my-smart-ec2-role"  # Name for role/instance profile
 smart_iam_role_description = "Smart IAM role for EC2 instances"
