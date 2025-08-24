@@ -504,6 +504,61 @@ variable "instance_profile_tags" {
   default     = {}
 }
 
+# Smart IAM feature variables (Google-like)
+variable "enable_smart_iam" {
+  description = "Enable smart IAM feature that automatically determines whether to create IAM role or just instance profile"
+  type        = bool
+  default     = false
+}
+
+variable "smart_iam_role_name" {
+  description = "Name for the IAM role/instance profile in smart mode"
+  type        = string
+  default     = null
+}
+
+variable "smart_iam_role_description" {
+  description = "Description for the IAM role in smart mode"
+  type        = string
+  default     = "Smart IAM role created by Terraform wrapper"
+}
+
+variable "smart_iam_role_path" {
+  description = "IAM role path in smart mode"
+  type        = string
+  default     = "/"
+}
+
+variable "smart_iam_role_policies" {
+  description = "Policies to attach to the IAM role in smart mode"
+  type        = map(string)
+  default     = {}
+}
+
+variable "smart_iam_role_permissions_boundary" {
+  description = "Permissions boundary for the IAM role in smart mode"
+  type        = string
+  default     = null
+}
+
+variable "smart_iam_role_tags" {
+  description = "Tags for the IAM role in smart mode"
+  type        = map(string)
+  default     = {}
+}
+
+variable "smart_instance_profile_tags" {
+  description = "Tags for the instance profile in smart mode"
+  type        = map(string)
+  default     = {}
+}
+
+variable "smart_iam_force_create_role" {
+  description = "Force creation of IAM role even if instance profile exists (for smart mode)"
+  type        = bool
+  default     = false
+}
+
 # Security Group variables
 variable "create_security_group" {
   description = "Determines whether a security group will be created"

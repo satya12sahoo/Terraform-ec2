@@ -245,6 +245,15 @@ The wrapper exposes **ALL variables** from the base EC2 module. Here are the key
 - `instance_profile_use_name_prefix` - Use name prefix for instance profile
 - `instance_profile_path` - Instance profile path
 - `instance_profile_tags` - Instance profile tags
+- `enable_smart_iam` - Enable smart IAM feature (Google-like)
+- `smart_iam_role_name` - Name for role/instance profile in smart mode
+- `smart_iam_role_description` - Description for IAM role in smart mode
+- `smart_iam_role_path` - IAM role path in smart mode
+- `smart_iam_role_policies` - Policies for IAM role in smart mode
+- `smart_iam_role_permissions_boundary` - Permissions boundary in smart mode
+- `smart_iam_role_tags` - Tags for IAM role in smart mode
+- `smart_instance_profile_tags` - Tags for instance profile in smart mode
+- `smart_iam_force_create_role` - Force role creation even if instance profile exists
 
 ### Security Group Configuration
 - `create_security_group` - Create security group

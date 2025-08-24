@@ -345,6 +345,28 @@ instance_profile_tags = {
   CreatedBy = "Terraform"
 }
 
+# Smart IAM feature configuration (Google-like)
+enable_smart_iam = true
+smart_iam_role_name = "my-smart-ec2-role"  # Name for role/instance profile
+smart_iam_role_description = "Smart IAM role for EC2 instances"
+smart_iam_role_path = "/"
+smart_iam_role_policies = {
+  "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+smart_iam_role_permissions_boundary = null
+smart_iam_role_tags = {
+  Purpose = "Smart IAM Role"
+  CreatedBy = "Terraform"
+  Feature = "smart-iam"
+}
+smart_instance_profile_tags = {
+  Purpose = "Smart Instance Profile"
+  CreatedBy = "Terraform"
+  Feature = "smart-iam"
+}
+smart_iam_force_create_role = false  # Set to true to force role creation even if instance profile exists
+
 # Security group configuration (disabled by default - use existing SGs)
 create_security_group = false
 security_group_name = null

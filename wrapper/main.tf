@@ -2,13 +2,94 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Data source to get existing IAM role
+# Data sources for smart IAM feature
 data "aws_iam_role" "existing" {
   count = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 1 : 0
   name  = var.existing_iam_role_name
 }
 
-# Create IAM instance profile for existing role
+# Smart IAM data sources
+data "aws_iam_role" "smart_existing_role" {
+  count = var.enable_smart_iam && var.smart_iam_role_name != null ? 1 : 0
+  name  = var.smart_iam_role_name
+}
+
+data "aws_iam_instance_profile" "smart_existing_profile" {
+  count = var.enable_smart_iam && var.smart_iam_role_name != null ? 1 : 0
+  name  = var.smart_iam_role_name
+}
+
+# Smart IAM role creation (only if role doesn't exist)
+resource "aws_iam_role" "smart_role" {
+  count = var.enable_smart_iam && var.smart_iam_role_name != null && 
+          length(data.aws_iam_role.smart_existing_role) == 0 && 
+          (var.smart_iam_force_create_role || length(data.aws_iam_instance_profile.smart_existing_profile) == 0) ? 1 : 0
+  
+  name = var.smart_iam_role_name
+  path = var.smart_iam_role_path
+  description = var.smart_iam_role_description
+  permissions_boundary = var.smart_iam_role_permissions_boundary
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+  
+  tags = merge(
+    var.smart_iam_role_tags,
+    {
+      Name        = var.smart_iam_role_name
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "terraform"
+      Feature     = "smart-iam"
+    }
+  )
+}
+
+# Smart IAM instance profile creation
+resource "aws_iam_instance_profile" "smart_profile" {
+  count = var.enable_smart_iam && var.smart_iam_role_name != null ? 1 : 0
+  
+  name = var.smart_iam_role_name
+  path = var.smart_iam_role_path
+  
+  # Use existing role if it exists, otherwise use the created role
+  role = length(data.aws_iam_role.smart_existing_role) > 0 ? 
+         data.aws_iam_role.smart_existing_role[0].name : 
+         (length(aws_iam_role.smart_role) > 0 ? aws_iam_role.smart_role[0].name : null)
+  
+  tags = merge(
+    var.smart_instance_profile_tags,
+    {
+      Name        = var.smart_iam_role_name
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "terraform"
+      Feature     = "smart-iam"
+    }
+  )
+}
+
+# Attach policies to smart IAM role
+resource "aws_iam_role_policy_attachment" "smart_policies" {
+  for_each = var.enable_smart_iam && var.smart_iam_role_name != null && 
+             length(var.smart_iam_role_policies) > 0 && 
+             length(aws_iam_role.smart_role) > 0 ? var.smart_iam_role_policies : {}
+  
+  role       = aws_iam_role.smart_role[0].name
+  policy_arn = each.value
+}
+
+# Create IAM instance profile for existing role (legacy feature)
 resource "aws_iam_instance_profile" "existing_role" {
   count = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 1 : 0
   
@@ -29,9 +110,19 @@ resource "aws_iam_instance_profile" "existing_role" {
 }
 
 locals {
-  # Determine which instance profile to use
-  instance_profile_name = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
-    aws_iam_instance_profile.existing_role[0].name : var.iam_instance_profile
+  # Determine which instance profile to use based on smart IAM or legacy mode
+  smart_instance_profile_name = var.enable_smart_iam && var.smart_iam_role_name != null ? 
+    aws_iam_instance_profile.smart_profile[0].name : null
+  
+  legacy_instance_profile_name = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    aws_iam_instance_profile.existing_role[0].name : null
+  
+  # Priority: Smart IAM > Legacy > Manual
+  instance_profile_name = coalesce(
+    local.smart_instance_profile_name,
+    local.legacy_instance_profile_name,
+    var.iam_instance_profile
+  )
   
   # Merge global settings with instance-specific settings
   merged_instances = {

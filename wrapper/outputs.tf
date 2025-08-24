@@ -99,3 +99,68 @@ output "existing_iam_role_name" {
   value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
     data.aws_iam_role.existing[0].name : null
 }
+
+# Smart IAM outputs
+output "smart_iam_instance_profile_arn" {
+  description = "ARN of the smart IAM instance profile"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null ? 
+    aws_iam_instance_profile.smart_profile[0].arn : null
+}
+
+output "smart_iam_instance_profile_name" {
+  description = "Name of the smart IAM instance profile"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null ? 
+    aws_iam_instance_profile.smart_profile[0].name : null
+}
+
+output "smart_iam_instance_profile_id" {
+  description = "ID of the smart IAM instance profile"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null ? 
+    aws_iam_instance_profile.smart_profile[0].id : null
+}
+
+output "smart_iam_role_arn" {
+  description = "ARN of the smart IAM role (if created)"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null && length(aws_iam_role.smart_role) > 0 ? 
+    aws_iam_role.smart_role[0].arn : null
+}
+
+output "smart_iam_role_name" {
+  description = "Name of the smart IAM role (if created)"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null && length(aws_iam_role.smart_role) > 0 ? 
+    aws_iam_role.smart_role[0].name : null
+}
+
+output "smart_iam_role_id" {
+  description = "ID of the smart IAM role (if created)"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null && length(aws_iam_role.smart_role) > 0 ? 
+    aws_iam_role.smart_role[0].id : null
+}
+
+output "smart_iam_existing_role_arn" {
+  description = "ARN of the existing IAM role (if found in smart mode)"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null && length(data.aws_iam_role.smart_existing_role) > 0 ? 
+    data.aws_iam_role.smart_existing_role[0].arn : null
+}
+
+output "smart_iam_existing_profile_arn" {
+  description = "ARN of the existing IAM instance profile (if found in smart mode)"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null && length(data.aws_iam_instance_profile.smart_existing_profile) > 0 ? 
+    data.aws_iam_instance_profile.smart_existing_profile[0].arn : null
+}
+
+output "smart_iam_decision" {
+  description = "Smart IAM decision made by the wrapper"
+  value = var.enable_smart_iam && var.smart_iam_role_name != null ? (
+    length(data.aws_iam_role.smart_existing_role) > 0 ? "Used existing IAM role" : (
+      length(data.aws_iam_instance_profile.smart_existing_profile) > 0 ? "Created IAM role for existing instance profile" : (
+        length(aws_iam_role.smart_role) > 0 ? "Created new IAM role and instance profile" : "No action taken"
+      )
+    )
+  ) : "Smart IAM not enabled"
+}
+
+output "final_instance_profile_used" {
+  description = "Final instance profile name used by all instances"
+  value = local.instance_profile_name
+}
