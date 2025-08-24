@@ -59,95 +59,95 @@ graph TD
     A[User Input: terraform.tfvars] --> B[Wrapper Module Processing]
     
     B --> C{Parse All Configurations}
-    C --> D[Global Settings & Naming]
-    C --> E[Instance Configurations & Tags]
-    C --> F[IAM Configuration & Naming]
-    C --> G[Security Group Configuration & Naming]
-    C --> H[Monitoring Configuration & Naming]
-    C --> I[Logging Configuration & Naming]
+    C --> D[global_settings & additional_tags]
+    C --> E[instances map with tags]
+    C --> F[IAM Configuration Variables]
+    C --> G[Security Group Variables]
+    C --> H[monitoring object]
+    C --> I[logging object]
     
     D --> J[Merge Global with Instance Configs]
     E --> J
     F --> K{IAM Strategy Decision}
     G --> L{Security Group Strategy}
-    H --> M{Enable Monitoring?}
-    I --> N{Enable Logging?}
+    H --> M{enable_monitoring_module?}
+    I --> N{enable_logging_module?}
     
-    %% IAM Decision Logic
-    K --> O{Adaptive IAM Enabled?}
+    %% IAM Decision Logic with Variables
+    K --> O{enable_smart_iam?}
     O -->|Yes| P[Adaptive IAM Logic]
-    O -->|No| Q{Existing Role Specified?}
+    O -->|No| Q{existing_iam_role_name?}
     
-    P --> R{Check Existing Role}
+    P --> R{Check smart_iam_role_name}
     R -->|Exists| S[Use Existing Role]
-    R -->|Not Exists| T{Check Existing Profile}
+    R -->|Not Exists| T{Check smart_iam_role_name Profile}
     T -->|Exists| U[Create Role for Profile]
     T -->|Not Exists| V[Create Both Role & Profile]
     
     Q -->|Yes| W[Create Instance Profile for Role]
-    Q -->|No| X{Instance Profile Specified?}
+    Q -->|No| X{iam_instance_profile?}
     X -->|Yes| Y[Use Existing Profile]
     X -->|No| Z[No IAM Resources]
     
-    %% Security Group Logic
-    L --> AA{Create Security Group?}
-    AA -->|Yes| BB[Create New Security Group with Custom Naming]
-    AA -->|No| CC[Use Existing Security Groups]
+    %% Security Group Logic with Variables
+    L --> AA{create_security_group?}
+    AA -->|Yes| BB[Create security_group_name with security_group_tags]
+    AA -->|No| CC[Use vpc_security_group_ids]
     
-    %% Monitoring Logic
+    %% Monitoring Logic with Variables
     M -->|Yes| DD[Monitoring Module Processing]
     M -->|No| EE[Skip Monitoring]
     
-    DD --> FF[Create CloudWatch Agent IAM Role with Naming]
-    DD --> GG[Create CloudWatch Dashboard with Naming]
-    DD --> HH[Create CloudWatch Alarms with Naming]
-    DD --> II[Create CloudWatch Log Groups with Naming]
-    DD --> JJ[Create SNS Topic & Subscriptions with Naming]
-    DD --> KK[Create Agent Configuration with Naming]
+    DD --> FF[Create monitoring.cloudwatch_agent_role_name]
+    DD --> GG[Create monitoring.dashboard_name]
+    DD --> HH[Create monitoring.cpu_alarm_name]
+    DD --> II[Create monitoring.log_groups]
+    DD --> JJ[Create monitoring.sns_topic_name]
+    DD --> KK[Create monitoring.cloudwatch_agent_config_parameter_name]
     
-    %% Logging Logic
+    %% Logging Logic with Variables
     N -->|Yes| LL[Logging Module Processing]
     N -->|No| MM[Skip Logging]
     
-    LL --> NN{Create S3 Bucket?}
-    NN -->|Yes| OO[Create New S3 Bucket with Naming]
-    NN -->|No| PP{Use Existing S3 Bucket?}
-    PP -->|Yes| QQ[Use Existing S3 Bucket]
+    LL --> NN{logging.create_s3_logging_bucket?}
+    NN -->|Yes| OO[Create logging.s3_logging_bucket_name]
+    NN -->|No| PP{logging.use_existing_s3_bucket?}
+    PP -->|Yes| QQ[Use logging.existing_s3_bucket_name]
     PP -->|No| RR[No S3 Bucket]
     
-    LL --> SS[Create CloudWatch Log Groups with Naming]
-    LL --> TT[Create Logging IAM Role with Naming]
-    LL --> UU[Create Logging Agent Config with Naming]
-    LL --> VV[Create Log Alarms with Naming]
-    LL --> WW[Create Logging Dashboard with Naming]
+    LL --> SS[Create logging.cloudwatch_log_groups]
+    LL --> TT[Create logging.logging_iam_role_name]
+    LL --> UU[Create logging.logging_agent_config_parameter_name]
+    LL --> VV[Create logging.logging_alarm_name]
+    LL --> WW[Create logging.logging_dashboard_name]
     
-    %% Naming & Tagging Configuration
-    D --> NAMING[Apply Naming Conventions]
-    E --> TAGGING[Apply Tagging Strategy]
-    F --> IAM_NAMING[IAM Naming & Tags]
-    G --> SG_NAMING[Security Group Naming & Tags]
-    H --> MON_NAMING[Monitoring Naming & Tags]
-    I --> LOG_NAMING[Logging Naming & Tags]
+    %% Naming & Tagging Configuration with Variables
+    D --> NAMING[Apply global_settings.name_prefix]
+    E --> TAGGING[Apply instances.*.tags]
+    F --> IAM_NAMING[Apply smart_iam_role_tags]
+    G --> SG_NAMING[Apply security_group_tags]
+    H --> MON_NAMING[Apply monitoring.*_tags]
+    I --> LOG_NAMING[Apply logging.*_tags]
     
     %% Resource Creation with Naming & Tagging
-    S --> XX[Final IAM Configuration with Naming & Tags]
+    S --> XX[Final IAM Configuration with smart_iam_role_tags]
     U --> XX
     V --> XX
     W --> XX
     Y --> XX
     Z --> XX
     
-    BB --> YY[Final Security Group Configuration with Naming & Tags]
+    BB --> YY[Final Security Group Configuration with security_group_tags]
     CC --> YY
     
-    FF --> ZZ[Monitoring Resources Created with Naming & Tags]
+    FF --> ZZ[Monitoring Resources Created with monitoring.*_tags]
     GG --> ZZ
     HH --> ZZ
     II --> ZZ
     JJ --> ZZ
     KK --> ZZ
     
-    OO --> AAA[Logging Resources Created with Naming & Tags]
+    OO --> AAA[Logging Resources Created with logging.*_tags]
     QQ --> AAA
     RR --> AAA
     SS --> AAA
@@ -156,7 +156,7 @@ graph TD
     VV --> AAA
     WW --> AAA
     
-    J --> BBB[Base EC2 Module with Naming & Tags]
+    J --> BBB[Base EC2 Module with instances.*.tags]
     XX --> BBB
     YY --> BBB
     ZZ --> BBB
@@ -227,10 +227,10 @@ graph TD
     J --> M{Smart IAM Enabled?}
     K --> N{Create Security Group?}
     
-    M -->|Yes| O[Adaptive IAM Decision Tree]
-    M -->|No| P{Existing Role?}
-    N -->|Yes| Q[Security Group Creation Logic]
-    N -->|No| R{Existing Security Groups Specified?}
+    M -->|Yes| O[Adaptive IAM Decision Tree<br/>enable_smart_iam=true]
+    M -->|No| P{existing_iam_role_name?}
+    N -->|Yes| Q[Security Group Creation Logic<br/>create_security_group=true]
+    N -->|No| R{vpc_security_group_ids?}
     
     %% Smart IAM Logic
     O --> S[Data Source: Check Existing Role]
@@ -1028,6 +1028,147 @@ logging = {
 - Project-based naming
 - Resource type-based naming
 - Instance-specific naming
+
+### **📋 Flowchart Variable Mapping**
+
+**Core Decision Variables:**
+```hcl
+# Enable/Disable Features
+enable_monitoring_module = true/false
+enable_logging_module = true/false
+enable_smart_iam = true/false
+
+# IAM Configuration
+existing_iam_role_name = "existing-role-name"
+iam_instance_profile = "existing-profile-name"
+smart_iam_role_name = "new-role-name"
+
+# Security Group Configuration
+create_security_group = true/false
+security_group_name = "new-sg-name"
+vpc_security_group_ids = ["sg-123", "sg-456"]
+
+# S3 Bucket Configuration
+logging = {
+  create_s3_logging_bucket = true/false
+  use_existing_s3_bucket = true/false
+  existing_s3_bucket_name = "existing-bucket"
+  s3_logging_bucket_name = "new-bucket"
+}
+```
+
+**Naming & Tagging Variables:**
+```hcl
+# Global Settings
+global_settings = {
+  name_prefix = "my-project"
+  additional_tags = { Environment = "prod" }
+}
+
+# Instance-Specific
+instances = {
+  web-server = {
+    tags = { Role = "web" }
+  }
+}
+
+# Resource-Specific Tags
+smart_iam_role_tags = { Purpose = "EC2 Access" }
+security_group_tags = { Purpose = "Web Access" }
+monitoring = {
+  cloudwatch_agent_role_tags = { Purpose = "Monitoring" }
+  dashboard_tags = { Purpose = "Dashboard" }
+}
+logging = {
+  s3_logging_bucket_tags = { Purpose = "Logging" }
+  logging_iam_role_tags = { Purpose = "Logging Access" }
+}
+```
+
+### **🎯 Practical Implementation Guide**
+
+**Scenario 1: Enable Adaptive IAM (Auto-Detection)**
+```hcl
+# Enable adaptive IAM feature
+enable_smart_iam = true
+smart_iam_role_name = "ec2-instance-role"
+smart_iam_role_tags = {
+  Purpose = "EC2 Instance Access"
+  AutoDetect = "Role/Profile"
+}
+```
+
+**Scenario 2: Use Existing IAM Role**
+```hcl
+# Disable adaptive IAM, use existing role
+enable_smart_iam = false
+existing_iam_role_name = "my-existing-role"
+create_instance_profile_for_existing_role = true
+```
+
+**Scenario 3: Use Existing Instance Profile**
+```hcl
+# Use existing instance profile
+enable_smart_iam = false
+iam_instance_profile = "my-existing-profile"
+```
+
+**Scenario 4: Create New Security Group**
+```hcl
+# Create new security group
+create_security_group = true
+security_group_name = "web-server-sg"
+security_group_tags = {
+  Purpose = "Web Server Access"
+}
+```
+
+**Scenario 5: Use Existing Security Groups**
+```hcl
+# Use existing security groups
+create_security_group = false
+vpc_security_group_ids = ["sg-12345678", "sg-87654321"]
+```
+
+**Scenario 6: Enable Monitoring**
+```hcl
+# Enable monitoring module
+enable_monitoring_module = true
+monitoring = {
+  create_cloudwatch_agent_role = true
+  cloudwatch_agent_role_name = "monitoring-role"
+  create_dashboard = true
+  dashboard_name = "app-dashboard"
+  create_cpu_alarms = true
+  cpu_alarm_name = "cpu-alarm"
+}
+```
+
+**Scenario 7: Enable Logging with New S3 Bucket**
+```hcl
+# Enable logging with new S3 bucket
+enable_logging_module = true
+logging = {
+  create_s3_logging_bucket = true
+  s3_logging_bucket_name = "my-logs-bucket"
+  use_existing_s3_bucket = false
+  create_logging_iam_role = true
+  logging_iam_role_name = "logging-role"
+}
+```
+
+**Scenario 8: Enable Logging with Existing S3 Bucket**
+```hcl
+# Enable logging with existing S3 bucket
+enable_logging_module = true
+logging = {
+  create_s3_logging_bucket = false
+  use_existing_s3_bucket = true
+  existing_s3_bucket_name = "my-existing-logs-bucket"
+  create_logging_iam_role = true
+  logging_iam_role_name = "logging-role"
+}
+```
 
 ## ⚙️ Configuration
 
