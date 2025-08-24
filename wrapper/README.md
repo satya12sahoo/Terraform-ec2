@@ -208,6 +208,148 @@ graph TD
     style QQ fill:#fce4ec
 ```
 
+### Complete End-to-End Resource Creation Flowchart (With Security Groups)
+
+```mermaid
+graph TD
+    A[User Input: terraform.tfvars] --> B[Wrapper Module Initialization]
+    B --> C{Parse Input Variables}
+    
+    C --> D[Global Settings Processing]
+    C --> E[Instance Configurations Processing]
+    C --> F[IAM Configuration Analysis]
+    C --> G[Security Group Configuration Analysis]
+    
+    D --> H[Apply Global Overrides]
+    E --> I[Validate Instance Configs]
+    F --> J{Determine IAM Strategy}
+    G --> K{Determine Security Group Strategy}
+    
+    H --> L[Merge Configurations]
+    I --> L
+    J --> M{Smart IAM Enabled?}
+    K --> N{Create Security Group?}
+    
+    M -->|Yes| O[Smart IAM Decision Tree]
+    M -->|No| P{Existing Role?}
+    N -->|Yes| Q[Security Group Creation Logic]
+    N -->|No| R{Existing Security Groups Specified?}
+    
+    %% Smart IAM Logic
+    O --> S[Data Source: Check Existing Role]
+    O --> T[Data Source: Check Existing Instance Profile]
+    
+    S --> U{Role Exists?}
+    T --> V{Instance Profile Exists?}
+    
+    U -->|Yes| W[Use Existing Role]
+    U -->|No| X[Create New IAM Role]
+    V -->|Yes| Y[Use Existing Instance Profile]
+    V -->|No| Z[Create New Instance Profile]
+    
+    W --> AA{Instance Profile Exists?}
+    X --> BB[Create IAM Role Resource]
+    Y --> CC{Force Create Role?}
+    Z --> DD[Create Instance Profile Resource]
+    
+    AA -->|Yes| EE[Link to Existing Profile]
+    AA -->|No| FF[Create Instance Profile for Existing Role]
+    BB --> GG[Attach Policies to Role]
+    CC -->|Yes| HH[Create New Role Anyway]
+    CC -->|No| II[Use Existing Profile Only]
+    DD --> JJ[Link to Created Role]
+    
+    EE --> KK[Final Instance Profile Decision]
+    FF --> KK
+    GG --> JJ
+    HH --> JJ
+    II --> KK
+    JJ --> KK
+    
+    %% Traditional IAM Logic
+    P -->|Yes| LL[Data Source: Fetch Existing Role]
+    P -->|No| MM{Instance Profile Specified?}
+    
+    LL --> NN[Create Instance Profile for Existing Role]
+    MM -->|Yes| OO[Use Specified Instance Profile]
+    MM -->|No| PP[No IAM Resources Created]
+    
+    NN --> QQ[Instance Profile Resource Created]
+    OO --> RR[Use Existing Instance Profile]
+    PP --> SS[No IAM Instance Profile]
+    
+    QQ --> KK
+    RR --> KK
+    SS --> KK
+    
+    %% Security Group Logic
+    Q --> TT[Security Group Creation Flow]
+    R --> UU{Existing SGs in vpc_security_group_ids?}
+    
+    TT --> VV[Create aws_security_group Resource]
+    VV --> WW[Configure Security Group Rules]
+    WW --> XX[Apply Security Group Tags]
+    XX --> YY[Security Group Created]
+    
+    UU -->|Yes| ZZ[Use Existing Security Groups]
+    UU -->|No| AAA[No Security Groups]
+    
+    ZZ --> BBB[Validate Security Group IDs]
+    AAA --> CCC[No Security Group Assignment]
+    
+    BBB --> DDD[Security Group Decision]
+    CCC --> DDD
+    YY --> DDD
+    
+    %% EC2 Instance Creation
+    KK --> EEE[Final Instance Profile Name]
+    DDD --> FFF[Final Security Group Decision]
+    L --> GGG[Process Instance Configurations]
+    
+    EEE --> HHH[Base EC2 Module Call]
+    FFF --> HHH
+    GGG --> HHH
+    
+    HHH --> III{Create EC2 Instances?}
+    
+    III -->|Yes| JJJ[Create EC2 Instance Resources]
+    III -->|No| KKK[Skip EC2 Creation]
+    
+    JJJ --> LLL[For Each Instance in Map]
+    LLL --> MMM[Create aws_instance Resource]
+    MMM --> NNN[Apply Instance Configuration]
+    NNN --> OOO[Attach IAM Instance Profile]
+    OOO --> PPP[Configure Block Devices]
+    PPP --> QQQ[Attach Security Groups]
+    QQQ --> RRR[Configure User Data]
+    RRR --> SSS[Apply Tags]
+    
+    KKK --> TTT[No EC2 Resources Created]
+    
+    SSS --> UUU[Output Generation]
+    TTT --> UUU
+    
+    UUU --> VVV[Instance Information Outputs]
+    UUU --> WWW[IAM Resource Outputs]
+    UUU --> XXX[Security Group Outputs]
+    UUU --> YYY[Configuration Summary Outputs]
+    
+    VVV --> ZZZ[Final Results]
+    WWW --> ZZZ
+    XXX --> ZZZ
+    YYY --> ZZZ
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style ZZZ fill:#c8e6c9
+    style O fill:#fff3e0
+    style Q fill:#fff3e0
+    style JJJ fill:#f3e5f5
+    style KK fill:#e8f5e8
+    style DDD fill:#e8f5e8
+    style HHH fill:#fce4ec
+```
+
 ### Detailed IAM Resource Creation Flowchart
 
 ```mermaid
@@ -330,6 +472,126 @@ graph TD
     style I fill:#f3e5f5
     style K fill:#e8f5e8
     style T fill:#ffebee
+```
+
+### Security Group Creation Flowchart
+
+```mermaid
+graph TD
+    A[Security Group Configuration] --> B{Create Security Group?}
+    
+    B -->|Yes| C[Security Group Creation Flow]
+    B -->|No| D{Existing Security Groups Specified?}
+    
+    C --> E[Resource: aws_security_group.this]
+    E --> F[Configure Security Group Name]
+    F --> G[Set VPC ID]
+    G --> H[Configure Description]
+    H --> I[Apply Security Group Tags]
+    
+    I --> J[Configure Ingress Rules]
+    J --> K[Configure Egress Rules]
+    K --> L[Security Group Created]
+    
+    D -->|Yes| M[Use Existing Security Groups]
+    D -->|No| N[No Security Groups]
+    
+    M --> O[Validate Security Group IDs]
+    O --> P[Check Security Group Existence]
+    P --> Q{All SGs Valid?}
+    Q -->|Yes| R[Use Specified Security Groups]
+    Q -->|No| S[Security Group Error]
+    
+    N --> T[No Security Group Assignment]
+    
+    L --> U[Final Security Group Decision]
+    R --> U
+    T --> U
+    S --> V[Terraform Error]
+    
+    U --> W[Attach to EC2 Instances]
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style W fill:#c8e6c9
+    style C fill:#fff3e0
+    style E fill:#f3e5f5
+    style S fill:#ffebee
+```
+
+### Security Group Toggle Feature Flowchart
+
+```mermaid
+graph TD
+    A[Security Group Input] --> B{Smart Security Group Enabled?}
+    
+    B -->|Yes| C[Smart Security Group Logic]
+    B -->|No| D{Create Security Group?}
+    
+    %% Smart Security Group Logic
+    C --> E[Data Source: Check Existing Security Groups]
+    E --> F{Existing Security Groups Found?}
+    
+    F -->|Yes| G[Use Existing Security Groups]
+    F -->|No| H{Create New Security Group?}
+    
+    G --> I[Validate Existing SGs]
+    H -->|Yes| J[Create New Security Group]
+    H -->|No| K[No Security Groups]
+    
+    I --> L{All SGs Valid?}
+    J --> M[Resource: aws_security_group.this]
+    K --> N[No Security Group Assignment]
+    
+    L -->|Yes| O[Use Existing Security Groups]
+    L -->|No| P[Create New Security Group]
+    
+    M --> Q[Configure Security Group Rules]
+    P --> R[Resource: aws_security_group.this]
+    
+    Q --> S[Security Group Created]
+    R --> T[Configure Security Group Rules]
+    N --> U[No Security Groups]
+    
+    S --> V[Final Security Group Decision]
+    T --> W[Security Group Created]
+    U --> V
+    
+    W --> V
+    
+    %% Traditional Logic
+    D -->|Yes| X[Create Security Group Resource]
+    D -->|No| Y{Existing SGs Specified?}
+    
+    X --> Z[Resource: aws_security_group.this]
+    Y -->|Yes| AA[Use Specified Security Groups]
+    Y -->|No| BB[No Security Groups]
+    
+    Z --> CC[Configure Security Group]
+    AA --> DD[Validate Security Groups]
+    BB --> EE[No Security Group Assignment]
+    
+    CC --> FF[Security Group Created]
+    DD --> GG{All SGs Valid?}
+    EE --> HH[No Security Groups]
+    
+    GG -->|Yes| II[Use Specified Security Groups]
+    GG -->|No| JJ[Security Group Error]
+    
+    FF --> KK[Final Security Group Decision]
+    II --> KK
+    HH --> KK
+    JJ --> LL[Terraform Error]
+    
+    V --> MM[Attach to EC2 Instances]
+    KK --> MM
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style MM fill:#c8e6c9
+    style C fill:#fff3e0
+    style X fill:#f3e5f5
+    style JJ fill:#ffebee
 ```
 
 ### User Data Template Processing Flowchart
@@ -536,6 +798,18 @@ graph TB
 | `associate_public_ip_address` | `associate_public_ip_address` | `aws_instance.this` | Public access |
 | `create_eip` | `create_eip` | `aws_eip.this` | Static IP |
 
+### 4.1. **Security Group Resource Mapping**
+
+| Configuration | Base Module Variable | AWS Resource | Purpose |
+|---------------|---------------------|--------------|---------|
+| `create_security_group` | `create_security_group` | `aws_security_group.this` | Create new security group |
+| `security_group_name` | `security_group_name` | `aws_security_group.this` | Security group name |
+| `security_group_description` | `security_group_description` | `aws_security_group.this` | Security group description |
+| `security_group_vpc_id` | `security_group_vpc_id` | `aws_security_group.this` | VPC for security group |
+| `security_group_ingress_rules` | `security_group_ingress_rules` | `aws_security_group_rule.ingress` | Inbound rules |
+| `security_group_egress_rules` | `security_group_egress_rules` | `aws_security_group_rule.egress` | Outbound rules |
+| `vpc_security_group_ids` | `vpc_security_group_ids` | `aws_instance.this` | Attach existing security groups |
+
 ### 5. **User Data Template Mapping**
 
 | Input | Processing | Output | Purpose |
@@ -546,16 +820,16 @@ graph TB
 
 ### 6. **Complete Resource Creation Summary**
 
-| Input Scenario | IAM Resources Created | EC2 Resources Created | Final Instance Profile |
-|----------------|----------------------|----------------------|----------------------|
-| **Smart IAM: Role exists, Profile exists** | None | `aws_instance.this[*]` | Existing Profile |
-| **Smart IAM: Role exists, Profile missing** | `aws_iam_instance_profile.smart_profile` | `aws_instance.this[*]` | Created Profile |
-| **Smart IAM: Role missing, Profile exists** | `aws_iam_role.smart_role` + `aws_iam_role_policy_attachment.smart_policies` | `aws_instance.this[*]` | Existing Profile |
-| **Smart IAM: Both missing** | `aws_iam_role.smart_role` + `aws_iam_instance_profile.smart_profile` + `aws_iam_role_policy_attachment.smart_policies` | `aws_instance.this[*]` | Created Profile |
-| **Existing Role: Role specified** | `aws_iam_instance_profile.existing_role` | `aws_instance.this[*]` | Created Profile |
-| **Existing Role: Profile specified** | None | `aws_instance.this[*]` | Specified Profile |
-| **No IAM: No configuration** | None | `aws_instance.this[*]` | None |
-| **Disabled: create = false** | None | None | None |
+| Input Scenario | IAM Resources Created | Security Group Resources Created | EC2 Resources Created | Final Instance Profile | Final Security Groups |
+|----------------|----------------------|----------------------------------|----------------------|----------------------|----------------------|
+| **Smart IAM: Role exists, Profile exists** | None | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Existing Profile | Created or Existing SGs |
+| **Smart IAM: Role exists, Profile missing** | `aws_iam_instance_profile.smart_profile` | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Created Profile | Created or Existing SGs |
+| **Smart IAM: Role missing, Profile exists** | `aws_iam_role.smart_role` + `aws_iam_role_policy_attachment.smart_policies` | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Existing Profile | Created or Existing SGs |
+| **Smart IAM: Both missing** | `aws_iam_role.smart_role` + `aws_iam_instance_profile.smart_profile` + `aws_iam_role_policy_attachment.smart_policies` | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Created Profile | Created or Existing SGs |
+| **Existing Role: Role specified** | `aws_iam_instance_profile.existing_role` | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Created Profile | Created or Existing SGs |
+| **Existing Role: Profile specified** | None | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | Specified Profile | Created or Existing SGs |
+| **No IAM: No configuration** | None | `aws_security_group.this` (if create_security_group=true) | `aws_instance.this[*]` | None | Created or Existing SGs |
+| **Disabled: create = false** | None | None | None | None | None |
 
 ### 7. **Resource Creation Decision Logic**
 
@@ -735,6 +1009,100 @@ smart_iam_role_policies = {
   s3_access = var.environment == "prod" ? "arn:aws:iam::aws:policy/AmazonS3FullAccess" : "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
   cloudwatch = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
+```
+
+### **Security Group Configuration Options**
+
+#### **1. Use Existing Security Groups**
+```hcl
+# In instances configuration
+instances = {
+  web_server = {
+    # ... other configuration ...
+    vpc_security_group_ids = ["sg-1234567890abcdef0", "sg-0987654321fedcba0"]
+    create_security_group = false
+  }
+}
+```
+
+#### **2. Create New Security Group**
+```hcl
+# Global security group configuration
+create_security_group = true
+security_group_name = "my-ec2-security-group"
+security_group_description = "Security group for EC2 instances"
+security_group_vpc_id = "vpc-1234567890abcdef0"
+
+security_group_ingress_rules = {
+  ssh = {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr_ipv4   = "10.0.0.0/8"
+    description = "SSH access"
+  }
+  http = {
+    from_port   = 80
+    to_port     = 80
+    ip_protocol = "tcp"
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "HTTP access"
+  }
+  https = {
+    from_port   = 443
+    to_port     = 443
+    ip_protocol = "tcp"
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "HTTPS access"
+  }
+}
+
+security_group_egress_rules = {
+  all_traffic = {
+    from_port   = 0
+    to_port     = 0
+    ip_protocol = "-1"
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "Allow all outbound traffic"
+  }
+}
+```
+
+#### **3. Mixed Approach (Create + Existing)**
+```hcl
+# Create a new security group
+create_security_group = true
+security_group_name = "my-new-security-group"
+security_group_ingress_rules = {
+  ssh = {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr_ipv4   = "10.0.0.0/8"
+  }
+}
+
+# In instances, use both created and existing security groups
+instances = {
+  web_server = {
+    # ... other configuration ...
+    vpc_security_group_ids = ["sg-existing-123", "sg-existing-456"]  # Will be merged with created SG
+  }
+}
+```
+
+#### **4. Security Group Toggle Feature (Proposed)**
+```hcl
+# Enable smart security group handling
+enable_smart_security_group = true
+smart_security_group_name = "smart-ec2-sg"
+smart_security_group_vpc_id = "vpc-1234567890abcdef0"
+
+# The wrapper will:
+# 1. Check if security group exists
+# 2. Create if it doesn't exist
+# 3. Use existing if it exists
+# 4. Merge with any specified existing security groups
 ```
 
 ## 📚 Examples
