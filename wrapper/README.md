@@ -14,91 +14,178 @@ A dynamic Terraform wrapper module for creating multiple EC2 instances with comp
 
 ```mermaid
 graph TD
-    A[terraform.tfvars] --> B[Wrapper Module]
+    A[terraform.tfvars Input] --> B[Wrapper Module Processing]
     
-    B --> C{Parse Configurations}
-    C --> D[global_settings]
-    C --> E[instances map]
-    C --> F[IAM Variables]
-    C --> G[Security Group Variables]
-    C --> H[monitoring object]
-    C --> I[logging object]
+    B --> C{Parse All Variables}
     
-    D --> J[Merge Configurations]
-    E --> J
-    F --> K{enable_smart_iam?}
-    G --> L{create_security_group?}
-    H --> M{enable_monitoring_module?}
-    I --> N{enable_logging_module?}
+    %% Core Variables
+    C --> D[Core Variables<br/>aws_region, environment, project_name, create]
+    C --> E[Instance Configurations<br/>instances map with all settings]
+    C --> F[Global Settings<br/>global_settings object]
     
-    %% IAM Logic
-    K -->|Yes| O[Adaptive IAM Logic]
-    K -->|No| P{existing_iam_role_name?}
+    %% Advanced Variables
+    C --> G[Advanced Variables<br/>ami_ssm_parameter, ignore_ami_changes, capacity_reservation_specification]
+    C --> H[CPU & Network Variables<br/>cpu_options, cpu_credits, enable_primary_ipv6, network_interface]
+    C --> I[Instance Options<br/>hibernation, tenancy, placement_group, maintenance_options]
     
-    O --> Q{Check smart_iam_role_name}
-    Q -->|Exists| R[Use Existing Role]
-    Q -->|Not Exists| S{Check Profile}
-    S -->|Exists| T[Create Role for Profile]
-    S -->|Not Exists| U[Create Both Role & Profile]
+    %% IAM Variables
+    C --> J[IAM Configuration<br/>iam_role_name, iam_role_policies, iam_role_tags]
+    C --> K[Adaptive IAM Variables<br/>enable_smart_iam, smart_iam_role_name, smart_iam_force_create_role]
+    C --> L[Existing IAM Variables<br/>existing_iam_role_name, create_instance_profile_for_existing_role]
     
-    P -->|Yes| V[Create Instance Profile]
-    P -->|No| W{iam_instance_profile?}
-    W -->|Yes| X[Use Existing Profile]
-    W -->|No| Y[No IAM Resources]
+    %% Security Group Variables
+    C --> M[Security Group Variables<br/>create_security_group, security_group_name, security_group_ingress_rules]
     
-    %% Security Group Logic
-    L -->|Yes| Z[Create security_group_name]
-    L -->|No| AA[Use vpc_security_group_ids]
+    %% Monitoring Variables
+    C --> N[Monitoring Variables<br/>enable_monitoring_module, monitoring object]
     
-    %% Monitoring Logic
-    M -->|Yes| BB[Monitoring Module]
-    M -->|No| CC[Skip Monitoring]
+    %% Logging Variables
+    C --> O[Logging Variables<br/>enable_logging_module, logging object]
     
-    BB --> DD[Create monitoring.* resources]
+    %% User Data Variables
+    C --> P[User Data Variables<br/>enable_user_data_template, user_data_template_path, user_data]
     
-    %% Logging Logic
-    N -->|Yes| EE[Logging Module]
-    N -->|No| FF[Skip Logging]
+    %% Spot Instance Variables
+    C --> Q[Spot Instance Variables<br/>create_spot_instance, spot_price, spot_type, spot_wait_for_fulfillment]
     
-    EE --> GG{logging.create_s3_logging_bucket?}
-    GG -->|Yes| HH[Create logging.s3_logging_bucket_name]
-    GG -->|No| II{logging.use_existing_s3_bucket?}
-    II -->|Yes| JJ[Use logging.existing_s3_bucket_name]
-    II -->|No| KK[No S3 Bucket]
+    %% Elastic IP Variables
+    C --> R[Elastic IP Variables<br/>create_eip, eip_domain, eip_tags]
     
-    EE --> LL[Create logging.* resources]
+    %% Merge and Process
+    D --> S[Merge Global with Instance Configs]
+    E --> S
+    F --> S
+    G --> S
+    H --> S
+    I --> S
+    
+    %% IAM Decision Logic
+    J --> T{IAM Strategy Decision}
+    K --> T
+    L --> T
+    
+    T --> U{enable_smart_iam?}
+    U -->|Yes| V[Adaptive IAM Logic<br/>Check smart_iam_role_name existence]
+    U -->|No| W{existing_iam_role_name?}
+    
+    V --> X{smart_iam_role_name exists?}
+    X -->|Yes| Y[Use Existing Role]
+    X -->|No| Z{smart_iam_role_name Profile exists?}
+    Z -->|Yes| AA[Create Role for Profile]
+    Z -->|No| BB[Create Both Role & Profile]
+    
+    W -->|Yes| CC[Create Instance Profile for Role]
+    W -->|No| DD{iam_instance_profile?}
+    DD -->|Yes| EE[Use Existing Profile]
+    DD -->|No| FF[No IAM Resources]
+    
+    %% Security Group Decision Logic
+    M --> GG{Security Group Strategy}
+    GG --> HH{create_security_group?}
+    HH -->|Yes| II[Create security_group_name<br/>with security_group_ingress_rules<br/>and security_group_egress_rules]
+    HH -->|No| JJ[Use vpc_security_group_ids from instances]
+    
+    %% Monitoring Decision Logic
+    N --> KK{enable_monitoring_module?}
+    KK -->|Yes| LL[Monitoring Module Processing<br/>Create monitoring.* resources]
+    KK -->|No| MM[Skip Monitoring]
+    
+    LL --> NN[Create CloudWatch Agent Role<br/>monitoring.cloudwatch_agent_role_name]
+    LL --> OO[Create CloudWatch Dashboard<br/>monitoring.dashboard_name]
+    LL --> PP[Create CloudWatch Alarms<br/>monitoring.cpu_alarm_name, memory_alarm_name, disk_alarm_name]
+    LL --> QQ[Create CloudWatch Log Groups<br/>monitoring.log_groups]
+    LL --> RR[Create SNS Topic<br/>monitoring.sns_topic_name]
+    LL --> SS[Create Agent Configuration<br/>monitoring.cloudwatch_agent_config_parameter_name]
+    
+    %% Logging Decision Logic
+    O --> TT{enable_logging_module?}
+    TT -->|Yes| UU[Logging Module Processing<br/>Create logging.* resources]
+    TT -->|No| VV[Skip Logging]
+    
+    UU --> WW{logging.create_s3_logging_bucket?}
+    WW -->|Yes| XX[Create S3 Bucket<br/>logging.s3_logging_bucket_name]
+    WW -->|No| YY{logging.use_existing_s3_bucket?}
+    YY -->|Yes| ZZ[Use Existing S3 Bucket<br/>logging.existing_s3_bucket_name]
+    YY -->|No| AAA[No S3 Bucket]
+    
+    UU --> BBB[Create CloudWatch Log Groups<br/>logging.cloudwatch_log_groups]
+    UU --> CCC[Create Logging IAM Role<br/>logging.logging_iam_role_name]
+    UU --> DDD[Create Logging Agent Config<br/>logging.logging_agent_config_parameter_name]
+    UU --> EEE[Create Log Alarms<br/>logging.logging_alarm_name]
+    UU --> FFF[Create Logging Dashboard<br/>logging.logging_dashboard_name]
+    
+    %% User Data Processing
+    P --> GGG{enable_user_data_template?}
+    GGG -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
+    GGG -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
+    
+    %% Spot Instance Processing
+    Q --> JJJ{create_spot_instance?}
+    JJJ -->|Yes| KKK[Configure Spot Instance<br/>spot_price, spot_type, spot_wait_for_fulfillment]
+    JJJ -->|No| LLL[Regular On-Demand Instance]
+    
+    %% Elastic IP Processing
+    R --> MMM{create_eip?}
+    MMM -->|Yes| NNN[Create Elastic IP<br/>eip_domain, eip_tags]
+    MMM -->|No| OOO[No Elastic IP]
     
     %% Resource Creation
-    R --> MM[Final IAM Config]
-    T --> MM
-    U --> MM
-    V --> MM
-    X --> MM
-    Y --> MM
+    Y --> PPP[Final IAM Configuration]
+    AA --> PPP
+    BB --> PPP
+    CC --> PPP
+    EE --> PPP
+    FF --> PPP
     
-    Z --> NN[Final Security Group Config]
-    AA --> NN
+    II --> QQQ[Final Security Group Configuration]
+    JJ --> QQQ
     
-    DD --> OO[Monitoring Resources]
-    LL --> PP[Logging Resources]
+    NN --> RRR[Monitoring Resources Created]
+    OO --> RRR
+    PP --> RRR
+    QQ --> RRR
+    RR --> RRR
+    SS --> RRR
     
-    J --> QQ[Base EC2 Module]
-    MM --> QQ
-    NN --> QQ
-    OO --> QQ
-    PP --> QQ
-    CC --> QQ
-    FF --> QQ
+    XX --> SSS[Logging Resources Created]
+    ZZ --> SSS
+    AAA --> SSS
+    BBB --> SSS
+    CCC --> SSS
+    DDD --> SSS
+    EEE --> SSS
+    FFF --> SSS
     
-    QQ --> RR[EC2 Instances Created]
-    RR --> SS[Generate Outputs]
+    HHH --> TTT[User Data Processed]
+    III --> TTT
+    
+    KKK --> UUU[Spot Instance Configured]
+    LLL --> UUU
+    
+    NNN --> VVV[Elastic IP Created]
+    OOO --> VVV
+    
+    %% Final EC2 Creation
+    S --> WWW[Base EC2 Module]
+    PPP --> WWW
+    QQQ --> WWW
+    RRR --> WWW
+    SSS --> WWW
+    TTT --> WWW
+    UUU --> WWW
+    VVV --> WWW
+    MM --> WWW
+    VV --> WWW
+    
+    WWW --> XXX[EC2 Instances Created<br/>with all configurations applied]
+    XXX --> YYY[Generate Comprehensive Outputs<br/>instance_ids, iam_resources, security_groups, monitoring, logging]
     
     %% Styling
-    style A fill:#e1f5fe
-    style K,L,M,N fill:#ffebee
-    style BB,EE fill:#e8f5e8
-    style QQ fill:#f3e5f5
-    style SS fill:#c8e6c9
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style U,HH,KK,TT,GGG,JJJ,MMM fill:#ffebee,stroke:#e65100,stroke-width:2px
+    style LL,UU fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    style WWW fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style YYY fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
 ```
 
 ## ⚙️ Configuration
@@ -209,18 +296,166 @@ logging = {
 }
 ```
 
-## 📋 Key Variables
+## 📋 Complete Variables Reference
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `instances` | `map(object)` | Map of instance configurations |
-| `global_settings` | `object` | Global settings applied to all instances |
-| `enable_smart_iam` | `bool` | Enable adaptive IAM auto-detection |
-| `smart_iam_role_name` | `string` | Role name for adaptive IAM |
-| `create_security_group` | `bool` | Create new security group |
-| `security_group_name` | `string` | Name for new security group |
-| `enable_monitoring_module` | `bool` | Enable monitoring module |
-| `enable_logging_module` | `bool` | Enable logging module |
+### **🔧 Core Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `aws_region` | `string` | ✅ Yes | - | AWS region where resources will be created |
+| `environment` | `string` | ✅ Yes | - | Environment name (e.g., dev, staging, prod) |
+| `project_name` | `string` | ✅ Yes | - | Project name for tagging |
+| `create` | `bool` | ❌ No | `true` | Whether to create instances |
+| `region` | `string` | ❌ No | `null` | Region alias for aws_region |
+
+### **🔄 Instance Configuration Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `instances` | `map(object)` | ✅ Yes | - | Map of instance configurations |
+| `global_settings` | `object` | ❌ No | `{}` | Global settings for all instances |
+| `ami_ssm_parameter` | `string` | ❌ No | `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64` | SSM parameter for AMI ID |
+| `ignore_ami_changes` | `bool` | ❌ No | `false` | Ignore AMI ID changes |
+
+### **⚙️ Advanced Configuration Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `capacity_reservation_specification` | `object` | ❌ No | `null` | Capacity reservation targeting |
+| `cpu_options` | `object` | ❌ No | `null` | CPU options (core_count, threads_per_core) |
+| `cpu_credits` | `string` | ❌ No | `null` | CPU credit option (unlimited/standard) |
+| `enclave_options_enabled` | `bool` | ❌ No | `null` | Enable Nitro Enclaves |
+| `enable_primary_ipv6` | `bool` | ❌ No | `null` | Enable IPv6 Global Unicast Address |
+| `ephemeral_block_device` | `map(object)` | ❌ No | `null` | Instance store volumes |
+| `get_password_data` | `bool` | ❌ No | `null` | Get password data |
+| `hibernation` | `bool` | ❌ No | `null` | Enable hibernation support |
+| `host_id` | `string` | ❌ No | `null` | Dedicated host ID |
+| `host_resource_group_arn` | `string` | ❌ No | `null` | Host resource group ARN |
+| `instance_initiated_shutdown_behavior` | `string` | ❌ No | `null` | Shutdown behavior |
+| `instance_market_options` | `object` | ❌ No | `null` | Market purchasing options |
+| `ipv6_address_count` | `number` | ❌ No | `null` | Number of IPv6 addresses |
+| `ipv6_addresses` | `list(string)` | ❌ No | `null` | Specific IPv6 addresses |
+| `launch_template` | `object` | ❌ No | `null` | Launch template configuration |
+| `maintenance_options` | `object` | ❌ No | `null` | Maintenance options |
+| `network_interface` | `map(object)` | ❌ No | `null` | Network interface configuration |
+| `placement_group` | `string` | ❌ No | `null` | Placement group |
+| `placement_partition_number` | `number` | ❌ No | `null` | Placement partition number |
+| `private_dns_name_options` | `object` | ❌ No | `null` | Private DNS name options |
+| `private_ip` | `string` | ❌ No | `null` | Private IP address |
+| `secondary_private_ips` | `list(string)` | ❌ No | `null` | Secondary private IPs |
+| `source_dest_check` | `bool` | ❌ No | `null` | Source/destination check |
+| `tenancy` | `string` | ❌ No | `null` | Instance tenancy |
+
+### **🔐 IAM Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `iam_role_name` | `string` | ❌ No | `null` | IAM role name |
+| `iam_role_use_name_prefix` | `bool` | ❌ No | `true` | Use name prefix for IAM role |
+| `iam_role_path` | `string` | ❌ No | `null` | IAM role path |
+| `iam_role_description` | `string` | ❌ No | `null` | IAM role description |
+| `iam_role_permissions_boundary` | `string` | ❌ No | `null` | IAM role permissions boundary |
+| `iam_role_policies` | `map(string)` | ❌ No | `{}` | IAM role policies |
+| `iam_role_tags` | `map(string)` | ❌ No | `{}` | IAM role tags |
+| `iam_instance_profile` | `string` | ❌ No | `null` | Existing IAM instance profile |
+| `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
+| `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create profile for existing role |
+| `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |
+| `instance_profile_use_name_prefix` | `bool` | ❌ No | `true` | Use name prefix for profile |
+| `instance_profile_path` | `string` | ❌ No | `null` | Instance profile path |
+| `instance_profile_tags` | `map(string)` | ❌ No | `{}` | Instance profile tags |
+
+### **🧠 Adaptive IAM Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable adaptive IAM auto-detection |
+| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for adaptive IAM |
+| `smart_iam_role_description` | `string` | ❌ No | `"Adaptive IAM role created by Terraform wrapper"` | Description for adaptive IAM role |
+| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for adaptive IAM role |
+| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies for adaptive IAM role |
+| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for adaptive IAM role |
+| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for adaptive IAM role |
+| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for adaptive IAM instance profile |
+| `smart_iam_force_create_role` | `bool` | ❌ No | `false` | Force create IAM role even if profile exists |
+
+### **🛡️ Security Group Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `create_security_group` | `bool` | ❌ No | `false` | Create new security group |
+| `security_group_name` | `string` | ❌ No | `null` | Security group name |
+| `security_group_use_name_prefix` | `bool` | ❌ No | `true` | Use name prefix for security group |
+| `security_group_description` | `string` | ❌ No | `null` | Security group description |
+| `security_group_vpc_id` | `string` | ❌ No | `null` | VPC ID for security group |
+| `security_group_tags` | `map(string)` | ❌ No | `{}` | Security group tags |
+| `security_group_ingress_rules` | `map(object)` | ❌ No | `null` | Ingress rules configuration |
+| `security_group_egress_rules` | `map(object)` | ❌ No | `{}` | Egress rules configuration |
+
+### **📊 Monitoring Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_monitoring_module` | `bool` | ❌ No | `false` | Enable monitoring module |
+| `monitoring` | `object` | ❌ No | `{}` | Monitoring configuration object |
+
+### **📝 Logging Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_logging_module` | `bool` | ❌ No | `false` | Enable logging module |
+| `logging` | `object` | ❌ No | `{}` | Logging configuration object |
+
+### **📄 User Data Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_user_data_template` | `bool` | ❌ No | `true` | Enable user data template |
+| `user_data_template_path` | `string` | ❌ No | `"templates/user_data.sh"` | Path to user data template |
+| `user_data` | `string` | ❌ No | `null` | Raw user data string |
+| `user_data_base64` | `string` | ❌ No | `null` | Base64 encoded user data |
+| `user_data_replace_on_change` | `bool` | ❌ No | `null` | Replace user data on changes |
+
+### **💰 Spot Instance Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `create_spot_instance` | `bool` | ❌ No | `false` | Create spot instance |
+| `spot_instance_interruption_behavior` | `string` | ❌ No | `null` | Spot interruption behavior |
+| `spot_launch_group` | `string` | ❌ No | `null` | Spot launch group |
+| `spot_price` | `string` | ❌ No | `null` | Maximum spot price |
+| `spot_type` | `string` | ❌ No | `null` | Spot request type |
+| `spot_wait_for_fulfillment` | `bool` | ❌ No | `null` | Wait for spot fulfillment |
+| `spot_valid_from` | `string` | ❌ No | `null` | Spot valid from date |
+| `spot_valid_until` | `string` | ❌ No | `null` | Spot valid until date |
+
+### **🌐 Elastic IP Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `create_eip` | `bool` | ❌ No | `false` | Create Elastic IP |
+| `eip_domain` | `string` | ❌ No | `"vpc"` | EIP domain |
+| `eip_tags` | `map(string)` | ❌ No | `{}` | EIP tags |
+
+### **🏷️ Tagging Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `instance_tags` | `map(string)` | ❌ No | `{}` | Additional instance tags |
+| `volume_tags` | `map(string)` | ❌ No | `{}` | Volume tags |
+| `enable_volume_tags` | `bool` | ❌ No | `true` | Enable volume tagging |
+
+### **⏱️ Timeout Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `timeouts` | `map(string)` | ❌ No | `{}` | Resource timeouts |
+
+### **🔒 Security Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `putin_khuylo` | `bool` | ✅ Yes | `true` | Security agreement variable |
 
 ## 🚀 Quick Start
 
