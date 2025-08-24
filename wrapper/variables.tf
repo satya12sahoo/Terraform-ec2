@@ -461,12 +461,6 @@ variable "iam_role_tags" {
   default     = {}
 }
 
-variable "iam_instance_profile" {
-  description = "IAM Instance Profile to launch the instance with. Specified as the name of the Instance Profile"
-  type        = string
-  default     = null
-}
-
 # New variables for existing IAM role support
 variable "existing_iam_role_name" {
   description = "Name of an existing IAM role to create an instance profile for"
@@ -835,18 +829,19 @@ variable "monitoring" {
     })), {})
   })
   default = {}
-  
-  # =============================================================================
-  # LOGGING MODULE CONFIGURATION
-  # =============================================================================
-  
-  variable "enable_logging_module" {
-    description = "Whether to enable the logging module"
-    type        = bool
-    default     = false
-  }
-  
-  variable "logging" {
+}
+
+# =============================================================================
+# LOGGING MODULE CONFIGURATION
+# =============================================================================
+
+variable "enable_logging_module" {
+  description = "Whether to enable the logging module"
+  type        = bool
+  default     = false
+}
+
+variable "logging" {
     description = "Configuration for the logging module"
     type = object({
       # CloudWatch Logs Configuration

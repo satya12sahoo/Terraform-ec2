@@ -187,9 +187,8 @@ module "ec2_instances" {
   associate_public_ip_address = each.value.associate_public_ip_address
   key_name                   = each.value.key_name
   
-  # User data (only if template is enabled)
+  # User data (processed in locals block)
   user_data_base64 = each.value.user_data
-  user_data = var.user_data
   user_data_replace_on_change = var.user_data_replace_on_change
   
   # Block device configuration
