@@ -106,118 +106,6 @@ graph TD
     C --> D[Global Settings Processing]
     C --> E[Instance Configurations Processing]
     C --> F[IAM Configuration Analysis]
-    
-    D --> G[Apply Global Overrides]
-    E --> H[Validate Instance Configs]
-    F --> I{Determine IAM Strategy}
-    
-    G --> J[Merge Configurations]
-    H --> J
-    I --> K{Smart IAM Enabled?}
-    
-    K -->|Yes| L[Smart IAM Decision Tree]
-    K -->|No| M{Existing Role Specified?}
-    
-    %% Smart IAM Logic
-    L --> N[Data Source: Check Existing Role]
-    L --> O[Data Source: Check Existing Instance Profile]
-    
-    N --> P{Role Exists?}
-    O --> Q{Instance Profile Exists?}
-    
-    P -->|Yes| R[Use Existing Role]
-    P -->|No| S[Create New IAM Role]
-    Q -->|Yes| T[Use Existing Instance Profile]
-    Q -->|No| U[Create New Instance Profile]
-    
-    R --> V{Instance Profile Exists?}
-    S --> W[Create IAM Role Resource]
-    T --> X{Force Create Role?}
-    U --> Y[Create Instance Profile Resource]
-    
-    V -->|Yes| Z[Link to Existing Profile]
-    V -->|No| AA[Create Instance Profile for Existing Role]
-    W --> BB[Attach Policies to Role]
-    X -->|Yes| CC[Create New Role Anyway]
-    X -->|No| DD[Use Existing Profile Only]
-    Y --> EE[Link to Created Role]
-    
-    Z --> FF[Final Instance Profile Decision]
-    AA --> FF
-    BB --> EE
-    CC --> EE
-    DD --> FF
-    EE --> FF
-    
-    %% Traditional IAM Logic
-    M -->|Yes| GG[Data Source: Fetch Existing Role]
-    M -->|No| HH{Instance Profile Specified?}
-    
-    GG --> II[Create Instance Profile for Existing Role]
-    HH -->|Yes| JJ[Use Specified Instance Profile]
-    HH -->|No| KK[No IAM Resources Created]
-    
-    II --> LL[Instance Profile Resource Created]
-    JJ --> MM[Use Existing Instance Profile]
-    KK --> NN[No IAM Instance Profile]
-    
-    LL --> FF
-    MM --> FF
-    NN --> FF
-    
-    %% EC2 Instance Creation
-    FF --> OO[Final Instance Profile Name]
-    J --> PP[Process Instance Configurations]
-    
-    OO --> QQ[Base EC2 Module Call]
-    PP --> QQ
-    
-    QQ --> RR{Create EC2 Instances?}
-    
-    RR -->|Yes| SS[Create EC2 Instance Resources]
-    RR -->|No| TT[Skip EC2 Creation]
-    
-    SS --> UU[For Each Instance in Map]
-    UU --> VV[Create aws_instance Resource]
-    VV --> WW[Apply Instance Configuration]
-    WW --> XX[Attach IAM Instance Profile]
-    XX --> YY[Configure Block Devices]
-    YY --> ZZ[Set Security Groups]
-    ZZ --> AAA[Configure User Data]
-    AAA --> BBB[Apply Tags]
-    
-    TT --> CCC[No EC2 Resources Created]
-    
-    BBB --> DDD[Output Generation]
-    CCC --> DDD
-    
-    DDD --> EEE[Instance Information Outputs]
-    DDD --> FFF[IAM Resource Outputs]
-    DDD --> GGG[Configuration Summary Outputs]
-    
-    EEE --> HHH[Final Results]
-    FFF --> HHH
-    GGG --> HHH
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style HHH fill:#c8e6c9
-    style L fill:#fff3e0
-    style SS fill:#f3e5f5
-    style FF fill:#e8f5e8
-    style QQ fill:#fce4ec
-```
-
-### Complete End-to-End Resource Creation Flowchart (With Security Groups)
-
-```mermaid
-graph TD
-    A[User Input: terraform.tfvars] --> B[Wrapper Module Initialization]
-    B --> C{Parse Input Variables}
-    
-    C --> D[Global Settings Processing]
-    C --> E[Instance Configurations Processing]
-    C --> F[IAM Configuration Analysis]
     C --> G[Security Group Configuration Analysis]
     
     D --> H[Apply Global Overrides]
@@ -349,6 +237,8 @@ graph TD
     style DDD fill:#e8f5e8
     style HHH fill:#fce4ec
 ```
+
+
 
 ### Detailed IAM Resource Creation Flowchart
 
