@@ -1309,4 +1309,110 @@ For support and questions:
 
 ---
 
+## 🔍 **Monitoring Module Integration**
+
+### **📊 Monitoring Features Available:**
+
+#### **1. CloudWatch Agent IAM Role**
+- Automatic IAM role creation for CloudWatch agent
+- Proper permissions for metrics and logs collection
+- Instance profile for EC2 instances
+
+#### **2. CloudWatch Dashboard**
+- Real-time monitoring dashboard
+- CPU, Network, and Disk metrics
+- Multi-instance visualization
+
+#### **3. CloudWatch Alarms**
+- CPU utilization alarms (configurable threshold)
+- Memory utilization alarms
+- Disk utilization alarms
+- Customizable evaluation periods
+
+#### **4. CloudWatch Log Groups**
+- System logs collection
+- Application logs collection
+- Security logs collection
+- Configurable retention periods
+
+#### **5. SNS Notifications**
+- Alarm notifications via SNS
+- Email/SMS subscriptions
+- Custom filter policies
+
+#### **6. CloudWatch Agent Configuration**
+- Automatic agent configuration
+- SSM Parameter Store integration
+- Comprehensive metrics collection
+
+### **🎯 How to Enable Monitoring:**
+
+```hcl
+# Enable monitoring module
+enable_monitoring_module = true
+
+# Configure monitoring
+monitoring = {
+  # CloudWatch Agent IAM Role
+  create_cloudwatch_agent_role = true
+  cloudwatch_agent_role_name = "my-cloudwatch-agent-role"
+  
+  # CloudWatch Dashboard
+  create_dashboard = true
+  dashboard_name = "my-ec2-dashboard"
+  
+  # CloudWatch Alarms
+  create_cpu_alarms = true
+  cpu_alarm_threshold = 80
+  create_memory_alarms = true
+  memory_alarm_threshold = 85
+  create_disk_alarms = true
+  disk_alarm_threshold = 90
+  
+  # SNS Notifications
+  create_sns_topic = true
+  sns_topic_name = "ec2-alarm-notifications"
+  sns_subscriptions = {
+    email = {
+      protocol = "email"
+      endpoint = "admin@company.com"
+    }
+  }
+  
+  # CloudWatch Log Groups
+  create_log_groups = true
+  log_groups = {
+    system = {
+      name = "/aws/ec2/system"
+      retention_in_days = 30
+    }
+    application = {
+      name = "/aws/ec2/application"
+      retention_in_days = 30
+    }
+  }
+}
+```
+
+### **📈 Monitoring Outputs:**
+
+- `monitoring_enabled` - Whether monitoring is enabled
+- `cloudwatch_agent_role_arn` - CloudWatch agent IAM role ARN
+- `dashboard_arn` - CloudWatch dashboard ARN
+- `all_alarm_arns` - All CloudWatch alarm ARNs
+- `log_group_names` - CloudWatch log group names
+- `sns_topic_arn` - SNS topic ARN for notifications
+- `monitoring_summary` - Complete monitoring summary
+
+### **🔄 Monitoring Flow:**
+
+1. **Wrapper creates EC2 instances**
+2. **Monitoring module receives instance IDs**
+3. **CloudWatch resources created automatically**
+4. **Instances configured with monitoring**
+5. **Real-time metrics and logs collection**
+6. **Alarms trigger notifications when thresholds exceeded**
+
+---
+
 **Note**: This wrapper module is designed to be flexible and comprehensive. Always test configurations in a non-production environment first.

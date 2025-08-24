@@ -277,3 +277,58 @@ module "ec2_instances" {
   # Required variable
   putin_khuylo = var.putin_khuylo
 }
+
+# Monitoring Module Integration
+module "monitoring" {
+  count = var.enable_monitoring_module ? 1 : 0
+  source = "../monitoring"
+  
+  aws_region = var.aws_region
+  environment = var.environment
+  instance_ids = values(module.ec2_instances)[*].id
+  
+  # CloudWatch Agent IAM Role
+  create_cloudwatch_agent_role = var.monitoring.create_cloudwatch_agent_role
+  cloudwatch_agent_role_name = var.monitoring.cloudwatch_agent_role_name
+  cloudwatch_agent_role_path = var.monitoring.cloudwatch_agent_role_path
+  cloudwatch_agent_role_description = var.monitoring.cloudwatch_agent_role_description
+  cloudwatch_agent_role_tags = var.monitoring.cloudwatch_agent_role_tags
+  cloudwatch_agent_policies = var.monitoring.cloudwatch_agent_policies
+  
+  # CloudWatch Dashboard
+  create_dashboard = var.monitoring.create_dashboard
+  dashboard_name = var.monitoring.dashboard_name
+  
+  # CloudWatch Alarms
+  create_cpu_alarms = var.monitoring.create_cpu_alarms
+  cpu_alarm_threshold = var.monitoring.cpu_alarm_threshold
+  cpu_alarm_period = var.monitoring.cpu_alarm_period
+  cpu_alarm_evaluation_periods = var.monitoring.cpu_alarm_evaluation_periods
+  
+  create_memory_alarms = var.monitoring.create_memory_alarms
+  memory_alarm_threshold = var.monitoring.memory_alarm_threshold
+  memory_alarm_period = var.monitoring.memory_alarm_period
+  memory_alarm_evaluation_periods = var.monitoring.memory_alarm_evaluation_periods
+  
+  create_disk_alarms = var.monitoring.create_disk_alarms
+  disk_alarm_threshold = var.monitoring.disk_alarm_threshold
+  disk_alarm_period = var.monitoring.disk_alarm_period
+  disk_alarm_evaluation_periods = var.monitoring.disk_alarm_evaluation_periods
+  
+  alarm_actions = var.monitoring.alarm_actions
+  ok_actions = var.monitoring.ok_actions
+  alarm_tags = var.monitoring.alarm_tags
+  
+  # CloudWatch Log Groups
+  create_log_groups = var.monitoring.create_log_groups
+  log_groups = var.monitoring.log_groups
+  
+  # SNS Topic
+  create_sns_topic = var.monitoring.create_sns_topic
+  sns_topic_name = var.monitoring.sns_topic_name
+  sns_topic_tags = var.monitoring.sns_topic_tags
+  sns_subscriptions = var.monitoring.sns_subscriptions
+  
+  # CloudWatch Agent Configuration
+  create_cloudwatch_agent_config = var.monitoring.create_cloudwatch_agent_config
+}

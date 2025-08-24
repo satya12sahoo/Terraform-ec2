@@ -663,3 +663,95 @@ variable "putin_khuylo" {
   type        = bool
   default     = true
 }
+
+# Monitoring Module Integration
+variable "enable_monitoring_module" {
+  description = "Whether to enable the monitoring module"
+  type        = bool
+  default     = false
+}
+
+variable "monitoring" {
+  description = "Monitoring module configuration"
+  type = object({
+    # CloudWatch Agent IAM Role
+    create_cloudwatch_agent_role = optional(bool, true)
+    cloudwatch_agent_role_name = optional(string, "cloudwatch-agent-role")
+    cloudwatch_agent_role_path = optional(string, "/")
+    cloudwatch_agent_role_description = optional(string, "IAM role for CloudWatch agent on EC2 instances")
+    cloudwatch_agent_role_tags = optional(map(string), {})
+    cloudwatch_agent_policies = optional(map(string), {
+      CloudWatchAgentServerPolicy = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      CloudWatchLogsFullAccess    = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+    })
+    
+    # CloudWatch Dashboard
+    create_dashboard = optional(bool, true)
+    dashboard_name = optional(string, "ec2-monitoring-dashboard")
+    
+    # CloudWatch Alarms
+    create_cpu_alarms = optional(bool, true)
+    cpu_alarm_threshold = optional(number, 80)
+    cpu_alarm_period = optional(number, 300)
+    cpu_alarm_evaluation_periods = optional(number, 2)
+    
+    create_memory_alarms = optional(bool, true)
+    memory_alarm_threshold = optional(number, 85)
+    memory_alarm_period = optional(number, 300)
+    memory_alarm_evaluation_periods = optional(number, 2)
+    
+    create_disk_alarms = optional(bool, true)
+    disk_alarm_threshold = optional(number, 90)
+    disk_alarm_period = optional(number, 300)
+    disk_alarm_evaluation_periods = optional(number, 2)
+    
+    alarm_actions = optional(list(string), [])
+    ok_actions = optional(list(string), [])
+    alarm_tags = optional(map(string), {})
+    
+    # CloudWatch Log Groups
+    create_log_groups = optional(bool, true)
+    log_groups = optional(map(object({
+      name              = string
+      retention_in_days = number
+      kms_key_id        = optional(string)
+      tags              = optional(map(string), {})
+    })), {
+      system = {
+        name              = "/aws/ec2/system"
+        retention_in_days = 30
+        tags = {
+          Purpose = "System Logs"
+        }
+      }
+      application = {
+        name              = "/aws/ec2/application"
+        retention_in_days = 30
+        tags = {
+          Purpose = "Application Logs"
+        }
+      }
+      security = {
+        name              = "/aws/ec2/security"
+        retention_in_days = 90
+        tags = {
+          Purpose = "Security Logs"
+        }
+      }
+    })
+    
+    # SNS Topic
+    create_sns_topic = optional(bool, false)
+    sns_topic_name = optional(string, "ec2-alarm-notifications")
+    sns_topic_tags = optional(map(string), {})
+    sns_subscriptions = optional(map(object({
+      protocol      = string
+      endpoint      = string
+      filter_policy = optional(string)
+    })), {})
+    
+    # CloudWatch Agent Configuration
+    create_cloudwatch_agent_config = optional(bool, true)
+  })
+  default = {}
+}

@@ -217,3 +217,54 @@ output "security_group_creation_summary" {
     }
   }
 }
+
+# Monitoring Module Outputs
+output "monitoring_enabled" {
+  description = "Whether monitoring module is enabled"
+  value = var.enable_monitoring_module
+}
+
+output "cloudwatch_agent_role_arn" {
+  description = "ARN of the CloudWatch agent IAM role"
+  value = var.enable_monitoring_module ? module.monitoring[0].cloudwatch_agent_role_arn : null
+}
+
+output "cloudwatch_agent_instance_profile_name" {
+  description = "Name of the CloudWatch agent instance profile"
+  value = var.enable_monitoring_module ? module.monitoring[0].cloudwatch_agent_instance_profile_name : null
+}
+
+output "dashboard_arn" {
+  description = "ARN of the CloudWatch dashboard"
+  value = var.enable_monitoring_module ? module.monitoring[0].dashboard_arn : null
+}
+
+output "dashboard_name" {
+  description = "Name of the CloudWatch dashboard"
+  value = var.enable_monitoring_module ? module.monitoring[0].dashboard_name : null
+}
+
+output "all_alarm_arns" {
+  description = "ARNs of all CloudWatch alarms"
+  value = var.enable_monitoring_module ? module.monitoring[0].all_alarm_arns : []
+}
+
+output "all_alarm_names" {
+  description = "Names of all CloudWatch alarms"
+  value = var.enable_monitoring_module ? module.monitoring[0].all_alarm_names : []
+}
+
+output "log_group_names" {
+  description = "Names of CloudWatch log groups"
+  value = var.enable_monitoring_module ? module.monitoring[0].log_group_names : []
+}
+
+output "sns_topic_arn" {
+  description = "ARN of the SNS topic for alarm notifications"
+  value = var.enable_monitoring_module ? module.monitoring[0].sns_topic_arn : null
+}
+
+output "monitoring_summary" {
+  description = "Summary of monitoring resources created"
+  value = var.enable_monitoring_module ? module.monitoring[0].monitoring_summary : null
+}
