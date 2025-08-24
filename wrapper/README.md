@@ -1440,10 +1440,12 @@ monitoring = {
 - Multi-instance log aggregation
 
 #### **2. S3 Logging Bucket**
+- **Create new S3 bucket** or **use existing S3 bucket**
 - Long-term log storage with lifecycle policies
 - Server-side encryption and versioning
 - Configurable compression and upload frequency
 - Public access blocking for security
+- **Flexible bucket management** - choose between creating new or using existing
 
 #### **3. Logging IAM Role & Instance Profile**
 - Dedicated IAM role for logging services
@@ -1490,8 +1492,13 @@ logging = {
     }
   }
   
-  # S3 Logging Bucket (Toggle: create_s3_logging_bucket)
-  create_s3_logging_bucket = true
+  # S3 Logging Bucket (Toggle: create_s3_logging_bucket OR use_existing_s3_bucket)
+  create_s3_logging_bucket = true  # Create new bucket
+  # OR use existing bucket:
+  # create_s3_logging_bucket = false
+  # use_existing_s3_bucket = true
+  # existing_s3_bucket_name = "my-company-logs-bucket"
+  
   s3_logging_bucket_name = "my-production-logs-2024"
   s3_logging_bucket_versioning = true
   s3_logging_bucket_encryption_algorithm = "AES256"
@@ -1523,9 +1530,48 @@ logging = {
 
 The logging module provides individual toggle controls for each component:
 
+### **🪣 S3 Bucket Options:**
+
+The logging module offers flexible S3 bucket management:
+
+#### **✅ Option 1: Create New S3 Bucket**
+```hcl
+logging = {
+  create_s3_logging_bucket = true
+  use_existing_s3_bucket = false
+  s3_logging_bucket_name = "my-new-logs-bucket"
+  s3_logging_bucket_versioning = true
+  s3_logging_bucket_encryption_algorithm = "AES256"
+  # ... other S3 configuration
+}
+```
+
+#### **✅ Option 2: Use Existing S3 Bucket**
+```hcl
+logging = {
+  create_s3_logging_bucket = false
+  use_existing_s3_bucket = true
+  existing_s3_bucket_name = "my-company-logs-bucket"
+  # OR provide ARN directly:
+  # existing_s3_bucket_arn = "arn:aws:s3:::my-company-logs-bucket"
+  # ... other logging configuration
+}
+```
+
+#### **✅ Option 3: No S3 Bucket (CloudWatch Only)**
+```hcl
+logging = {
+  create_s3_logging_bucket = false
+  use_existing_s3_bucket = false
+  # Only CloudWatch logs will be used
+  # ... other logging configuration
+}
+```
+
 #### **✅ Toggle Controls:**
 - **`create_cloudwatch_log_groups`** - Enable/disable CloudWatch log groups
-- **`create_s3_logging_bucket`** - Enable/disable S3 logging bucket
+- **`create_s3_logging_bucket`** - Enable/disable S3 logging bucket creation
+- **`use_existing_s3_bucket`** - Enable/disable using existing S3 bucket
 - **`create_logging_iam_role`** - Enable/disable logging IAM role
 - **`create_logging_agent_config`** - Enable/disable agent configuration
 - **`create_logging_alarms`** - Enable/disable log alarms
@@ -1538,16 +1584,18 @@ The logging module provides individual toggle controls for each component:
 logging = {
   create_cloudwatch_log_groups = true
   create_s3_logging_bucket = false
+  use_existing_s3_bucket = false
   create_logging_iam_role = false
   create_logging_alarms = false
   create_logging_sns_topic = false
   create_logging_dashboard = false
 }
 
-# Full logging with S3 storage
+# Full logging with new S3 bucket
 logging = {
   create_cloudwatch_log_groups = true
   create_s3_logging_bucket = true
+  use_existing_s3_bucket = false
   create_logging_iam_role = true
   create_logging_agent_config = true
   create_logging_alarms = true
@@ -1555,10 +1603,25 @@ logging = {
   create_logging_dashboard = true
 }
 
-# Logging with existing IAM role
+# Logging with existing S3 bucket
 logging = {
   create_cloudwatch_log_groups = true
-  create_s3_logging_bucket = true
+  create_s3_logging_bucket = false
+  use_existing_s3_bucket = true
+  existing_s3_bucket_name = "my-company-logs-bucket"
+  create_logging_iam_role = true
+  create_logging_agent_config = true
+  create_logging_alarms = true
+  create_logging_sns_topic = false
+  create_logging_dashboard = true
+}
+
+# Logging with existing IAM role and S3 bucket
+logging = {
+  create_cloudwatch_log_groups = true
+  create_s3_logging_bucket = false
+  use_existing_s3_bucket = true
+  existing_s3_bucket_name = "my-company-logs-bucket"
   create_logging_iam_role = false  # Use existing role
   create_logging_agent_config = true
   create_logging_alarms = true

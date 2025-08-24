@@ -827,6 +827,9 @@ variable "monitoring" {
       
       # S3 Logging Configuration
       create_s3_logging_bucket = optional(bool, false)
+      use_existing_s3_bucket = optional(bool, false)
+      existing_s3_bucket_name = optional(string)
+      existing_s3_bucket_arn = optional(string)
       s3_logging_bucket_name = optional(string)
       s3_logging_bucket_name_prefix = optional(string, "logging-bucket-")
       s3_logging_bucket_use_name_prefix = optional(bool, true)

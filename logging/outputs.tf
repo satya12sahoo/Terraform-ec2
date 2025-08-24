@@ -21,18 +21,32 @@ output "cloudwatch_log_group_names" {
 # =============================================================================
 
 output "s3_logging_bucket_arn" {
-  description = "ARN of the S3 logging bucket"
-  value = var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].arn : null
+  description = "ARN of the S3 logging bucket (created or existing)"
+  value = local.s3_bucket_arn
 }
 
 output "s3_logging_bucket_name" {
-  description = "Name of the S3 logging bucket"
-  value = var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].bucket : null
+  description = "Name of the S3 logging bucket (created or existing)"
+  value = local.s3_bucket_name
 }
 
 output "s3_logging_bucket_id" {
-  description = "ID of the S3 logging bucket"
-  value = var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].id : null
+  description = "ID of the S3 logging bucket (created or existing)"
+  value = var.use_existing_s3_bucket ? (
+    var.existing_s3_bucket_name != null ? var.existing_s3_bucket_name : data.aws_s3_bucket.existing_logging_bucket[0].id
+  ) : (
+    var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].id : null
+  )
+}
+
+output "s3_bucket_created" {
+  description = "Whether a new S3 bucket was created"
+  value = var.create_s3_logging_bucket
+}
+
+output "s3_bucket_existing" {
+  description = "Whether an existing S3 bucket was used"
+  value = var.use_existing_s3_bucket
 }
 
 # =============================================================================
@@ -139,8 +153,9 @@ output "logging_summary" {
     }
     s3_logging_bucket = {
       created = var.create_s3_logging_bucket
-      name = var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].bucket : null
-      arn = var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].arn : null
+      existing = var.use_existing_s3_bucket
+      name = local.s3_bucket_name
+      arn = local.s3_bucket_arn
     }
     iam_role = {
       created = var.create_logging_iam_role

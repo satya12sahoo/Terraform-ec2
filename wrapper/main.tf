@@ -387,6 +387,9 @@ module "logging" {
   
   # S3 Logging Configuration
   create_s3_logging_bucket = var.logging.create_s3_logging_bucket
+  use_existing_s3_bucket = var.logging.use_existing_s3_bucket
+  existing_s3_bucket_name = var.logging.existing_s3_bucket_name
+  existing_s3_bucket_arn = var.logging.existing_s3_bucket_arn
   s3_logging_bucket_name = var.logging.s3_logging_bucket_name
   s3_logging_bucket_name_prefix = var.logging.s3_logging_bucket_name_prefix
   s3_logging_bucket_use_name_prefix = var.logging.s3_logging_bucket_use_name_prefix

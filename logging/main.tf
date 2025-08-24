@@ -26,6 +26,12 @@ resource "aws_cloudwatch_log_group" "application_logs" {
 # S3 LOGGING CONFIGURATION
 # =============================================================================
 
+# Data source for existing S3 bucket
+data "aws_s3_bucket" "existing_logging_bucket" {
+  count = var.use_existing_s3_bucket ? 1 : 0
+  bucket = var.existing_s3_bucket_name
+}
+
 # S3 bucket for centralized logging
 resource "aws_s3_bucket" "logging_bucket" {
   count = var.create_s3_logging_bucket ? 1 : 0
@@ -71,7 +77,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logging_bucket" {
   }
 }
 
-# S3 bucket lifecycle policy
+# S3 bucket lifecycle policy (for created bucket)
 resource "aws_s3_bucket_lifecycle_configuration" "logging_bucket" {
   count = var.create_s3_logging_bucket && length(var.s3_logging_bucket_lifecycle_rules) > 0 ? 1 : 0
   
@@ -206,7 +212,7 @@ resource "aws_iam_role_policy_attachment" "logging_policies" {
 
 # Custom policy for S3 logging access
 resource "aws_iam_role_policy" "s3_logging_access" {
-  count = var.create_logging_iam_role && var.create_s3_logging_bucket ? 1 : 0
+  count = var.create_logging_iam_role && (var.create_s3_logging_bucket || var.use_existing_s3_bucket) ? 1 : 0
   
   name = "s3-logging-access"
   role = aws_iam_role.logging_role[0].id
@@ -222,8 +228,8 @@ resource "aws_iam_role_policy" "s3_logging_access" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.logging_bucket[0].arn,
-          "${aws_s3_bucket.logging_bucket[0].arn}/*"
+          local.s3_bucket_arn,
+          "${local.s3_bucket_arn}/*"
         ]
       }
     ]
@@ -282,6 +288,19 @@ resource "aws_ssm_parameter" "logging_agent_config" {
 
 # Local configuration for logging agent
 locals {
+  # Determine which S3 bucket to use
+  s3_bucket_arn = var.use_existing_s3_bucket ? (
+    var.existing_s3_bucket_arn != null ? var.existing_s3_bucket_arn : data.aws_s3_bucket.existing_logging_bucket[0].arn
+  ) : (
+    var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].arn : null
+  )
+  
+  s3_bucket_name = var.use_existing_s3_bucket ? (
+    var.existing_s3_bucket_name != null ? var.existing_s3_bucket_name : data.aws_s3_bucket.existing_logging_bucket[0].bucket
+  ) : (
+    var.create_s3_logging_bucket ? aws_s3_bucket.logging_bucket[0].bucket : null
+  )
+  
   default_log_configs = {
     system = {
       file_path = "/var/log/syslog"
@@ -338,8 +357,8 @@ locals {
         }
       }
     }
-    s3 = var.create_s3_logging_bucket ? {
-      bucket_name = aws_s3_bucket.logging_bucket[0].bucket
+    s3 = (var.create_s3_logging_bucket || var.use_existing_s3_bucket) ? {
+      bucket_name = local.s3_bucket_name
       region = var.aws_region
       upload_frequency = var.s3_logging_upload_frequency
       compression = var.s3_logging_compression

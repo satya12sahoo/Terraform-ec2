@@ -62,8 +62,26 @@ variable "create_s3_logging_bucket" {
   default     = false
 }
 
+variable "use_existing_s3_bucket" {
+  description = "Whether to use an existing S3 bucket for logging"
+  type        = bool
+  default     = false
+}
+
+variable "existing_s3_bucket_name" {
+  description = "Name of existing S3 bucket to use for logging"
+  type        = string
+  default     = null
+}
+
+variable "existing_s3_bucket_arn" {
+  description = "ARN of existing S3 bucket to use for logging"
+  type        = string
+  default     = null
+}
+
 variable "s3_logging_bucket_name" {
-  description = "Name of the S3 logging bucket"
+  description = "Name of the S3 logging bucket (only used if create_s3_logging_bucket = true)"
   type        = string
   default     = null
 }
