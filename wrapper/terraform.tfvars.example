@@ -1,0 +1,49 @@
+# AWS Configuration
+aws_region = "us-west-2"
+
+# Project Configuration
+environment  = "production"
+project_name = "my-web-application"
+
+# AMI Configuration
+ami_id = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI in us-west-2
+
+# Network Configuration
+availability_zones = [
+  "us-west-2a",
+  "us-west-2b", 
+  "us-west-2c"
+]
+
+subnet_ids = [
+  "subnet-1234567890abcdef0",  # Public subnet in us-west-2a
+  "subnet-1234567890abcdef1",  # Public subnet in us-west-2b
+  "subnet-1234567890abcdef2"   # Private subnet in us-west-2c
+]
+
+security_group_ids = [
+  "sg-1234567890abcdef0"  # Security group with SSH, HTTP, HTTPS access
+]
+
+# SSH Configuration
+key_pair_name = "my-key-pair"
+
+# Optional Configuration
+vpc_id = "vpc-1234567890abcdef0"
+
+enable_monitoring = true
+enable_ebs_optimization = true
+enable_termination_protection = false
+enable_stop_protection = false
+
+create_iam_profiles = false
+iam_role_policies = {
+  # "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  # "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+additional_tags = {
+  Owner       = "DevOps Team"
+  CostCenter  = "IT-001"
+  Backup      = "true"
+}
