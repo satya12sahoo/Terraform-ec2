@@ -10,13 +10,14 @@ This wrapper provides a **completely dynamic** way to create multiple EC2 instan
 - **🏷️ Role-based Templates**: User data templates support role-based configuration
 - **🌍 Global Settings**: Optional global settings that can override instance-specific configs
 - **📊 Comprehensive Outputs**: Detailed information about created instances
+- **🔧 Full Base Module Support**: All variables from the base EC2 module are available
 
 ## 📁 Structure
 
 ```
 wrapper/
 ├── main.tf                    # Dynamic configuration processing
-├── variables.tf               # Variable definitions (no defaults)
+├── variables.tf               # Variable definitions (all base module variables included)
 ├── outputs.tf                 # Comprehensive outputs
 ├── versions.tf                # Terraform version requirements
 ├── README.md                  # This documentation
@@ -174,6 +175,90 @@ global_settings = {
 }
 ```
 
+## 🔧 All Available Variables
+
+The wrapper exposes **ALL variables** from the base EC2 module. Here are the key categories:
+
+### Basic Configuration
+- `create` - Whether to create instances
+- `region` - AWS region
+- `environment` - Environment name
+- `project_name` - Project name
+
+### Instance Configuration
+- `ami_ssm_parameter` - SSM parameter for AMI
+- `ignore_ami_changes` - Ignore AMI changes
+- `capacity_reservation_specification` - Capacity reservation settings
+- `cpu_options` - CPU configuration
+- `cpu_credits` - CPU credits for T instances
+- `enclave_options_enabled` - Nitro Enclaves
+- `enable_primary_ipv6` - IPv6 support
+- `ephemeral_block_device` - Instance store volumes
+- `get_password_data` - Get Windows password
+- `hibernation` - Instance hibernation
+- `host_id` - Dedicated host ID
+- `host_resource_group_arn` - Host resource group
+- `instance_initiated_shutdown_behavior` - Shutdown behavior
+- `instance_market_options` - Spot instance options
+- `ipv6_address_count` - IPv6 address count
+- `ipv6_addresses` - IPv6 addresses
+- `launch_template` - Launch template
+- `maintenance_options` - Maintenance options
+- `network_interface` - Network interfaces
+- `placement_group` - Placement group
+- `placement_partition_number` - Partition number
+- `private_dns_name_options` - Private DNS options
+- `private_ip` - Private IP address
+- `secondary_private_ips` - Secondary private IPs
+- `source_dest_check` - Source/destination check
+- `tenancy` - Instance tenancy
+
+### User Data & Storage
+- `user_data` - User data script
+- `user_data_base64` - Base64 encoded user data
+- `user_data_replace_on_change` - Replace on change
+- `enable_volume_tags` - Enable volume tags
+- `volume_tags` - Volume tags
+- `timeouts` - Operation timeouts
+
+### Spot Instance Configuration
+- `create_spot_instance` - Create spot instance
+- `spot_instance_interruption_behavior` - Interruption behavior
+- `spot_launch_group` - Launch group
+- `spot_price` - Maximum price
+- `spot_type` - Spot type
+- `spot_wait_for_fulfillment` - Wait for fulfillment
+- `spot_valid_from` - Valid from date
+- `spot_valid_until` - Valid until date
+
+### IAM Configuration
+- `iam_role_name` - IAM role name
+- `iam_role_use_name_prefix` - Use name prefix
+- `iam_role_path` - IAM role path
+- `iam_role_description` - Role description
+- `iam_role_permissions_boundary` - Permissions boundary
+- `iam_role_tags` - IAM role tags
+- `iam_instance_profile` - Existing IAM profile
+
+### Security Group Configuration
+- `create_security_group` - Create security group
+- `security_group_name` - Security group name
+- `security_group_use_name_prefix` - Use name prefix
+- `security_group_description` - Description
+- `security_group_vpc_id` - VPC ID
+- `security_group_tags` - Security group tags
+- `security_group_egress_rules` - Egress rules
+- `security_group_ingress_rules` - Ingress rules
+
+### Elastic IP Configuration
+- `create_eip` - Create Elastic IP
+- `eip_domain` - EIP domain
+- `eip_tags` - EIP tags
+
+### Additional Configuration
+- `instance_tags` - Additional instance tags
+- `putin_khuylo` - Required variable
+
 ## 🔧 Advanced Usage Examples
 
 ### Simple Configuration
@@ -210,7 +295,7 @@ instances = {
 }
 ```
 
-### Complex Configuration with EBS Volumes
+### Complex Configuration with Advanced Features
 
 ```hcl
 instances = {
@@ -265,6 +350,90 @@ instances = {
     tags = {
       Name = "db-server"
       Role = "database"
+    }
+  }
+}
+
+# Global advanced configuration
+cpu_options = {
+  core_count       = 2
+  threads_per_core = 1
+}
+
+cpu_credits = "unlimited"
+hibernation = false
+instance_initiated_shutdown_behavior = "stop"
+
+# IAM configuration
+create_iam_instance_profile = true
+iam_role_policies = {
+  "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# Security group configuration
+create_security_group = true
+security_group_ingress_rules = {
+  ssh = {
+    from_port   = 22
+    to_port     = 22
+    ip_protocol = "tcp"
+    cidr_ipv4   = "10.0.0.0/8"
+    description = "SSH access"
+  }
+  http = {
+    from_port   = 80
+    to_port     = 80
+    ip_protocol = "tcp"
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "HTTP access"
+  }
+}
+
+# Elastic IP configuration
+create_eip = true
+eip_tags = {
+  Name = "database-eip"
+}
+```
+
+### Spot Instance Configuration
+
+```hcl
+# Spot instance configuration
+create_spot_instance = true
+spot_instance_interruption_behavior = "stop"
+spot_price = "0.05"
+spot_type = "persistent"
+spot_wait_for_fulfillment = true
+
+instances = {
+  spot_worker = {
+    name                        = "spot-worker"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-xxx"
+    vpc_security_group_ids     = ["sg-xxx"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "spot-worker"
+      role     = "worker"
+    }
+    
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+    }
+    
+    tags = {
+      Name = "spot-worker"
+      Role = "worker"
+      SpotInstance = "true"
     }
   }
 }

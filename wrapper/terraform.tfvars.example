@@ -265,3 +265,105 @@ global_settings = {
 # User data template configuration
 user_data_template_path = "templates/user_data.sh"
 enable_user_data_template = true
+
+# Additional global configuration options from base module
+create = true
+region = "us-west-2"
+
+# AMI configuration
+ami_ssm_parameter = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+ignore_ami_changes = false
+
+# CPU options (optional)
+cpu_options = {
+  core_count       = 2
+  threads_per_core = 1
+}
+
+# CPU credits for T instances
+cpu_credits = "unlimited"
+
+# Instance settings
+enclave_options_enabled = false
+enable_primary_ipv6 = false
+get_password_data = false
+hibernation = false
+
+# Network configuration
+ipv6_address_count = null
+ipv6_addresses = null
+private_ip = null
+secondary_private_ips = null
+source_dest_check = true
+
+# Instance behavior
+instance_initiated_shutdown_behavior = "stop"
+tenancy = "default"
+
+# User data configuration
+user_data = null
+user_data_replace_on_change = false
+
+# Volume configuration
+enable_volume_tags = true
+volume_tags = {}
+
+# Timeouts
+timeouts = {
+  create = "10m"
+  update = "10m"
+  delete = "10m"
+}
+
+# Spot instance configuration (disabled by default)
+create_spot_instance = false
+spot_instance_interruption_behavior = null
+spot_launch_group = null
+spot_price = null
+spot_type = null
+spot_wait_for_fulfillment = null
+spot_valid_from = null
+spot_valid_until = null
+
+# IAM configuration
+iam_role_name = null
+iam_role_use_name_prefix = true
+iam_role_path = null
+iam_role_description = null
+iam_role_permissions_boundary = null
+iam_role_tags = {}
+iam_instance_profile = null
+
+# Security group configuration (disabled by default - use existing SGs)
+create_security_group = false
+security_group_name = null
+security_group_use_name_prefix = true
+security_group_description = null
+security_group_vpc_id = null
+security_group_tags = {}
+security_group_egress_rules = {
+  ipv4_default = {
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "Allow all IPv4 traffic"
+    ip_protocol = "-1"
+  }
+  ipv6_default = {
+    cidr_ipv6   = "::/0"
+    description = "Allow all IPv6 traffic"
+    ip_protocol = "-1"
+  }
+}
+security_group_ingress_rules = null
+
+# Elastic IP configuration (disabled by default)
+create_eip = false
+eip_domain = "vpc"
+eip_tags = {}
+
+# Additional tags for instances
+instance_tags = {
+  ManagedBy = "terraform"
+}
+
+# Required variable
+putin_khuylo = true
