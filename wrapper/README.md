@@ -394,7 +394,10 @@ graph TD
     style V,II,LL,UU,HHH,KKK,NNN fill:#ffebee,stroke:#e65100,stroke-width:2px
     style MM,VV fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px
     style XXX fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
-    style ZZZ fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px## ⚙️ Configuration
+    style ZZZ fill:#c8e6c9,stroke:#1b5e20,stroke-width:3px
+```
+
+## ⚙️ Configuration
 
 ### **Basic Usage**
 
