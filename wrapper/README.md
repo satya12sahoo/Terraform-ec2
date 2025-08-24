@@ -1051,6 +1051,16 @@ terraform plan
 terraform apply
 ```
 
+### **6. Security Group Configuration**
+```bash
+# Copy example
+cp examples/security-groups.tfvars terraform.tfvars
+
+# Update security group configuration
+terraform plan
+terraform apply
+```
+
 ## 📤 Outputs
 
 ### **Instance Information**
@@ -1066,6 +1076,16 @@ terraform apply
 - `iam_instance_profile_name` - Instance profile name
 - `smart_iam_role_arn` - Smart IAM role ARN (if created)
 - `smart_iam_instance_profile_arn` - Smart instance profile ARN
+
+### **Security Group Resources**
+- `security_group_id` - Security group ID (if created)
+- `security_group_arn` - Security group ARN (if created)
+- `security_group_name` - Security group name (if created)
+- `security_group_vpc_id` - Security group VPC ID (if created)
+- `security_group_ingress_rules` - Ingress rules (if created)
+- `security_group_egress_rules` - Egress rules (if created)
+- `final_security_groups_used` - Security groups used by each instance
+- `security_group_creation_summary` - Summary of security group configuration
 
 ### **Configuration Summary**
 - `total_instances` - Total number of instances

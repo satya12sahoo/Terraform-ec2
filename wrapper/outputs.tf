@@ -164,3 +164,56 @@ output "final_instance_profile_used" {
   description = "Final instance profile name used by all instances"
   value = local.instance_profile_name
 }
+
+# Security Group Outputs
+output "security_group_id" {
+  description = "ID of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_id, null) : null
+}
+
+output "security_group_arn" {
+  description = "ARN of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_arn, null) : null
+}
+
+output "security_group_name" {
+  description = "Name of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_name, null) : null
+}
+
+output "security_group_vpc_id" {
+  description = "VPC ID of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_vpc_id, null) : null
+}
+
+output "security_group_ingress_rules" {
+  description = "Ingress rules of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_ingress_rules, {}) : {}
+}
+
+output "security_group_egress_rules" {
+  description = "Egress rules of the created security group (if any)"
+  value = var.create_security_group ? try(module.ec2_instances[keys(var.instances)[0]].security_group_egress_rules, {}) : {}
+}
+
+output "final_security_groups_used" {
+  description = "Final security groups used by all instances"
+  value = {
+    for instance_name, instance_config in var.instances : instance_name => instance_config.vpc_security_group_ids
+  }
+}
+
+output "security_group_creation_summary" {
+  description = "Summary of security group creation and usage"
+  value = {
+    create_security_group = var.create_security_group
+    security_group_name = var.security_group_name
+    security_group_vpc_id = var.security_group_vpc_id
+    instances_with_security_groups = {
+      for instance_name, instance_config in var.instances : instance_name => {
+        security_group_ids = instance_config.vpc_security_group_ids
+        count = length(instance_config.vpc_security_group_ids)
+      }
+    }
+  }
+}
