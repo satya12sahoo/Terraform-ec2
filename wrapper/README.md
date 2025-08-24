@@ -987,7 +987,18 @@ instance_profile_name = "my-new-instance-profile"
 | `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create instance profile for existing role |
 | `enable_smart_iam` | `bool` | ❌ No | `false` | Enable smart IAM logic |
 | `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for smart IAM |
+| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for smart IAM role |
+| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for smart IAM role |
+| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to smart IAM role |
+| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for smart IAM role |
+| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for smart IAM role |
+| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for smart IAM instance profile |
+| `smart_iam_force_create_role` | `bool` | ❌ No | `false` | Force create IAM role even if profile exists |
 | `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
+| `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |
+| `instance_profile_use_name_prefix` | `bool` | ❌ No | `false` | Use name prefix for instance profile |
+| `instance_profile_path` | `string` | ❌ No | `"/"` | Path for instance profile |
+| `instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for instance profile |
 
 ### **🛡️ Security Group Variables**
 
