@@ -11,6 +11,7 @@ A dynamic, zero-hardcoded Terraform wrapper module for creating multiple EC2 ins
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
+- [Variables Reference](#variables-reference)
 - [Examples](#examples)
 - [Outputs](#outputs)
 - [Advanced Features](#advanced-features)
@@ -62,101 +63,133 @@ graph TD
     C --> F[IAM Configuration]
     C --> G[Security Group Configuration]
     C --> H[Monitoring Configuration]
+    C --> I[Logging Configuration]
     
-    D --> I[Merge Global with Instance Configs]
-    E --> I
-    F --> J{IAM Strategy Decision}
-    G --> K{Security Group Strategy}
-    H --> L{Enable Monitoring?}
+    D --> J[Merge Global with Instance Configs]
+    E --> J
+    F --> K{IAM Strategy Decision}
+    G --> L{Security Group Strategy}
+    H --> M{Enable Monitoring?}
+    I --> N{Enable Logging?}
     
     %% IAM Decision Logic
-    J --> M{Smart IAM Enabled?}
-    M -->|Yes| N[Smart IAM Logic]
-    M -->|No| O{Existing Role Specified?}
+    K --> O{Smart IAM Enabled?}
+    O -->|Yes| P[Smart IAM Logic]
+    O -->|No| Q{Existing Role Specified?}
     
-    N --> P{Check Existing Role}
-    P -->|Exists| Q[Use Existing Role]
-    P -->|Not Exists| R{Check Existing Profile}
-    R -->|Exists| S[Create Role for Profile]
-    R -->|Not Exists| T[Create Both Role & Profile]
+    P --> R{Check Existing Role}
+    R -->|Exists| S[Use Existing Role]
+    R -->|Not Exists| T{Check Existing Profile}
+    T -->|Exists| U[Create Role for Profile]
+    T -->|Not Exists| V[Create Both Role & Profile]
     
-    O -->|Yes| U[Create Instance Profile for Role]
-    O -->|No| V{Instance Profile Specified?}
-    V -->|Yes| W[Use Existing Profile]
-    V -->|No| X[No IAM Resources]
+    Q -->|Yes| W[Create Instance Profile for Role]
+    Q -->|No| X{Instance Profile Specified?}
+    X -->|Yes| Y[Use Existing Profile]
+    X -->|No| Z[No IAM Resources]
     
     %% Security Group Logic
-    K --> Y{Create Security Group?}
-    Y -->|Yes| Z[Create New Security Group]
-    Y -->|No| AA[Use Existing Security Groups]
+    L --> AA{Create Security Group?}
+    AA -->|Yes| BB[Create New Security Group]
+    AA -->|No| CC[Use Existing Security Groups]
     
     %% Monitoring Logic
-    L -->|Yes| BB[Monitoring Module Processing]
-    L -->|No| CC[Skip Monitoring]
+    M -->|Yes| DD[Monitoring Module Processing]
+    M -->|No| EE[Skip Monitoring]
     
-    BB --> DD[Create CloudWatch Agent IAM Role]
-    BB --> EE[Create CloudWatch Dashboard]
-    BB --> FF[Create CloudWatch Alarms]
-    BB --> GG[Create CloudWatch Log Groups]
-    BB --> HH[Create SNS Topic & Subscriptions]
-    BB --> II[Create Agent Configuration]
+    DD --> FF[Create CloudWatch Agent IAM Role]
+    DD --> GG[Create CloudWatch Dashboard]
+    DD --> HH[Create CloudWatch Alarms]
+    DD --> II[Create CloudWatch Log Groups]
+    DD --> JJ[Create SNS Topic & Subscriptions]
+    DD --> KK[Create Agent Configuration]
+    
+    %% Logging Logic
+    N -->|Yes| LL[Logging Module Processing]
+    N -->|No| MM[Skip Logging]
+    
+    LL --> NN{Create S3 Bucket?}
+    NN -->|Yes| OO[Create New S3 Bucket]
+    NN -->|No| PP{Use Existing S3 Bucket?}
+    PP -->|Yes| QQ[Use Existing S3 Bucket]
+    PP -->|No| RR[No S3 Bucket]
+    
+    LL --> SS[Create CloudWatch Log Groups]
+    LL --> TT[Create Logging IAM Role]
+    LL --> UU[Create Logging Agent Config]
+    LL --> VV[Create Log Alarms]
+    LL --> WW[Create Logging Dashboard]
     
     %% Resource Creation
-    Q --> JJ[Final IAM Configuration]
-    S --> JJ
-    T --> JJ
-    U --> JJ
-    W --> JJ
-    X --> JJ
+    S --> XX[Final IAM Configuration]
+    U --> XX
+    V --> XX
+    W --> XX
+    Y --> XX
+    Z --> XX
     
-    Z --> KK[Final Security Group Configuration]
-    AA --> KK
+    BB --> YY[Final Security Group Configuration]
+    CC --> YY
     
-    DD --> LL[Monitoring Resources Created]
-    EE --> LL
-    FF --> LL
-    GG --> LL
-    HH --> LL
-    II --> LL
+    FF --> ZZ[Monitoring Resources Created]
+    GG --> ZZ
+    HH --> ZZ
+    II --> ZZ
+    JJ --> ZZ
+    KK --> ZZ
     
-    I --> MM[Base EC2 Module]
-    JJ --> MM
-    KK --> MM
-    LL --> MM
-    CC --> MM
+    OO --> AAA[Logging Resources Created]
+    QQ --> AAA
+    RR --> AAA
+    SS --> AAA
+    TT --> AAA
+    UU --> AAA
+    VV --> AAA
+    WW --> AAA
     
-    MM --> NN[Create EC2 Instances]
-    NN --> OO[Attach IAM Instance Profiles]
-    NN --> PP[Attach Security Groups]
-    NN --> QQ[Configure User Data]
-    NN --> RR[Apply Tags & Naming]
+    J --> BBB[Base EC2 Module]
+    XX --> BBB
+    YY --> BBB
+    ZZ --> BBB
+    AAA --> BBB
+    EE --> BBB
+    MM --> BBB
     
-    OO --> SS[Final EC2 Instances]
-    PP --> SS
-    QQ --> SS
-    RR --> SS
+    BBB --> CCC[Create EC2 Instances]
+    CCC --> DDD[Attach IAM Instance Profiles]
+    CCC --> EEE[Attach Security Groups]
+    CCC --> FFF[Configure User Data]
+    CCC --> GGG[Apply Tags & Naming]
     
-    SS --> TT[Generate Outputs]
-    TT --> UU[Instance IDs, IPs, ARNs]
-    TT --> VV[IAM Resources Created]
-    TT --> WW[Security Group Information]
-    TT --> XX[Monitoring Resources]
-    TT --> YY[Complete Resource Summary]
+    DDD --> HHH[Final EC2 Instances]
+    EEE --> HHH
+    FFF --> HHH
+    GGG --> HHH
+    
+    HHH --> III[Generate Outputs]
+    III --> JJJ[Instance IDs, IPs, ARNs]
+    III --> KKK[IAM Resources Created]
+    III --> LLL[Security Group Information]
+    III --> MMM[Monitoring Resources]
+    III --> NNN[Logging Resources]
+    III --> OOO[Complete Resource Summary]
     
     %% Styling
     style A fill:#e1f5fe
     style B fill:#fff3e0
     style C fill:#f3e5f5
-    style M fill:#ffebee
-    style K fill:#ffebee
+    style O fill:#ffebee
     style L fill:#ffebee
-    style N fill:#fff3e0
-    style Y fill:#ffebee
-    style BB fill:#e8f5e8
-    style MM fill:#f3e5f5
-    style SS fill:#c8e6c9
-    style TT fill:#e1f5fe
-    style YY fill:#c8e6c9
+    style M fill:#ffebee
+    style N fill:#ffebee
+    style P fill:#fff3e0
+    style AA fill:#ffebee
+    style DD fill:#e8f5e8
+    style LL fill:#e8f5e8
+    style BBB fill:#f3e5f5
+    style HHH fill:#c8e6c9
+    style III fill:#e1f5fe
+    style OOO fill:#c8e6c9
 ```
 
 ```mermaid
@@ -924,6 +957,220 @@ enable_smart_iam = false
 create_instance_profile_for_existing_role = true
 existing_iam_role_name = "my-existing-role"
 instance_profile_name = "my-new-instance-profile"
+```
+
+## 📋 Variables Reference
+
+### **🔧 Core Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `aws_region` | `string` | ✅ Yes | - | AWS region for resource creation |
+| `environment` | `string` | ✅ Yes | - | Environment name for tagging |
+| `project_name` | `string` | ✅ Yes | - | Project name for resource naming |
+| `create` | `bool` | ✅ Yes | - | Whether to create resources |
+| `region` | `string` | ✅ Yes | - | AWS region (alias for aws_region) |
+| `putin_khuylo` | `bool` | ✅ Yes | - | Required variable (security check) |
+
+### **🔄 Loop & Instance Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `instances` | `map(object)` | ✅ Yes | - | Map of instance configurations |
+| `global_settings` | `object` | ❌ No | `{}` | Global settings for all instances |
+
+### **🔐 IAM Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `iam_instance_profile` | `string` | ❌ No | `null` | Existing IAM instance profile name |
+| `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create instance profile for existing role |
+| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable smart IAM logic |
+| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for smart IAM |
+| `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
+
+### **🛡️ Security Group Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `create_security_group` | `bool` | ❌ No | `false` | Create new security group |
+| `security_group_name` | `string` | ❌ No | `null` | Security group name |
+| `security_group_description` | `string` | ❌ No | `null` | Security group description |
+| `security_group_vpc_id` | `string` | ❌ No | `null` | VPC ID for security group |
+| `security_group_ingress_rules` | `map(object)` | ❌ No | `{}` | Ingress rules configuration |
+| `security_group_egress_rules` | `map(object)` | ❌ No | `{}` | Egress rules configuration |
+
+### **📊 Monitoring Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_monitoring_module` | `bool` | ❌ No | `false` | Enable monitoring module |
+| `monitoring` | `object` | ❌ No | `{}` | Monitoring configuration object |
+
+### **📝 Logging Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_logging_module` | `bool` | ❌ No | `false` | Enable logging module |
+| `logging` | `object` | ❌ No | `{}` | Logging configuration object |
+
+### **📄 User Data Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enable_user_data_template` | `bool` | ❌ No | `false` | Enable user data template |
+| `user_data_template_path` | `string` | ❌ No | `null` | Path to user data template |
+| `user_data` | `string` | ❌ No | `null` | Raw user data string |
+| `user_data_replace_on_change` | `bool` | ❌ No | `false` | Replace user data on changes |
+
+### **🏷️ Naming & Tagging Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `instance_tags` | `map(string)` | ❌ No | `{}` | Additional instance tags |
+| `volume_tags` | `map(string)` | ❌ No | `{}` | Volume tags |
+| `enable_volume_tags` | `bool` | ❌ No | `true` | Enable volume tagging |
+
+### **⚙️ Advanced Configuration Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `enclave_options_enabled` | `bool` | ❌ No | `false` | Enable enclave options |
+| `enable_primary_ipv6` | `bool` | ❌ No | `false` | Enable IPv6 |
+| `get_password_data` | `bool` | ❌ No | `false` | Get password data |
+| `hibernation` | `bool` | ❌ No | `false` | Enable hibernation |
+| `instance_initiated_shutdown_behavior` | `string` | ❌ No | `"stop"` | Shutdown behavior |
+| `tenancy` | `string` | ❌ No | `"default"` | Instance tenancy |
+| `timeouts` | `object` | ❌ No | `{}` | Resource timeouts |
+
+### **🎯 Instance Configuration Object Structure**
+
+```hcl
+instances = {
+  instance_key = {
+    # Required Fields
+    name                        = string
+    ami                         = string
+    instance_type              = string
+    availability_zone          = string
+    subnet_id                  = string
+    vpc_security_group_ids     = list(string)
+    associate_public_ip_address = bool
+    key_name                   = string
+    
+    # Optional Fields
+    user_data_template_vars    = map(string)
+    root_block_device          = object
+    ebs_volumes                = map(object)
+    create_iam_instance_profile = bool
+    iam_role_policies          = map(string)
+    disable_api_stop           = bool
+    disable_api_termination    = bool
+    ebs_optimized              = bool
+    monitoring                 = bool
+    metadata_options           = object
+    tags                       = map(string)
+  }
+}
+```
+
+### **🌍 Global Settings Object Structure**
+
+```hcl
+global_settings = {
+  enable_monitoring            = bool
+  enable_ebs_optimization      = bool
+  enable_termination_protection = bool
+  enable_stop_protection       = bool
+  create_iam_profiles          = bool
+  iam_role_policies            = map(string)
+  additional_tags              = map(string)
+}
+```
+
+### **📊 Monitoring Configuration Object Structure**
+
+```hcl
+monitoring = {
+  # CloudWatch Agent IAM Role
+  create_cloudwatch_agent_role = bool
+  cloudwatch_agent_role_name   = string
+  cloudwatch_agent_role_tags   = map(string)
+  
+  # CloudWatch Dashboard
+  create_dashboard             = bool
+  dashboard_name               = string
+  dashboard_tags               = map(string)
+  
+  # CloudWatch Alarms
+  create_cpu_alarms            = bool
+  cpu_alarm_threshold          = number
+  create_memory_alarms         = bool
+  memory_alarm_threshold       = number
+  create_disk_alarms           = bool
+  disk_alarm_threshold         = number
+  
+  # SNS Notifications
+  create_sns_topic             = bool
+  sns_topic_name               = string
+  sns_subscriptions            = map(object)
+  
+  # CloudWatch Log Groups
+  create_log_groups            = bool
+  log_groups                   = map(object)
+  
+  # Agent Configuration
+  create_cloudwatch_agent_config = bool
+  cloudwatch_agent_config_parameter_name = string
+  cloudwatch_agent_config_log_groups = map(object)
+  cloudwatch_agent_config_metrics = map(object)
+}
+```
+
+### **📝 Logging Configuration Object Structure**
+
+```hcl
+logging = {
+  # CloudWatch Logs
+  create_cloudwatch_log_groups = bool
+  cloudwatch_log_groups        = map(object)
+  
+  # S3 Logging
+  create_s3_logging_bucket     = bool
+  use_existing_s3_bucket       = bool
+  existing_s3_bucket_name      = string
+  existing_s3_bucket_arn       = string
+  s3_logging_bucket_name       = string
+  s3_logging_bucket_versioning = bool
+  s3_logging_bucket_encryption_algorithm = string
+  s3_logging_upload_frequency  = string
+  s3_logging_compression       = string
+  
+  # Logging IAM Role
+  create_logging_iam_role      = bool
+  logging_iam_role_name        = string
+  logging_iam_role_policies    = map(string)
+  
+  # Logging Agent
+  create_logging_agent_config  = bool
+  logging_agent_config_parameter_name = string
+  logging_agent_config_logs    = map(object)
+  
+  # Logging Alarms
+  create_logging_alarms        = bool
+  logging_alarm_threshold      = number
+  logging_alarm_period         = number
+  
+  # SNS Notifications
+  create_logging_sns_topic     = bool
+  logging_sns_topic_name       = string
+  logging_sns_subscriptions    = map(object)
+  
+  # Logging Dashboard
+  create_logging_dashboard     = bool
+  logging_dashboard_name       = string
+  logging_dashboard_tags       = map(string)
+}
 ```
 
 #### **3. Smart IAM (Toggle Feature)**
