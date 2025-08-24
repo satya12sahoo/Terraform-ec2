@@ -4,11 +4,55 @@ A dynamic Terraform wrapper module for creating multiple EC2 instances with comp
 
 ## 🎯 Features
 
+- **Zero hardcoded values** - Everything configurable via `tfvars` files
 - **Dynamic instance creation** - Create multiple instances with different configurations using `for_each` loops
 - **Global defaults with instance overrides** - Set common configurations globally and override per instance
 - **Adaptive IAM management** - Automatically detects existing resources and creates missing ones
 - **Comprehensive configuration** - All base module variables exposed via `tfvars`
 - **Monitoring & Logging integration** - Optional CloudWatch monitoring and centralized logging
+- **Complete user input control** - All system tags, service principals, and defaults configurable
+
+## 🎯 Zero Hardcoded Values Approach
+
+This wrapper module follows a **zero hardcoded values** approach, meaning everything is configurable via `tfvars` files. This includes:
+
+### **✅ What's Configurable:**
+
+#### **🏷️ System Tags:**
+```hcl
+# All system tags are configurable
+managed_by_tag = "terraform"           # Default: "terraform"
+feature_tag = "adaptive-iam"           # Default: "adaptive-iam"
+```
+
+#### **🔐 IAM Configuration:**
+```hcl
+# IAM service principals and policies
+ec2_service_principal = "ec2.amazonaws.com"     # Default: "ec2.amazonaws.com"
+assume_role_policy_version = "2012-10-17"       # Default: "2012-10-17"
+```
+
+#### **📄 User Data Templates:**
+```hcl
+# Default values for user data templates
+default_role_name = "default"                   # Default: "default"
+user_data_template_path = "templates/user_data.sh"  # Default: "templates/user_data.sh"
+```
+
+#### **🌍 Environment & Project:**
+```hcl
+# Core environment variables
+aws_region = "us-west-2"
+environment = "production"
+project_name = "my-project"
+```
+
+### **✅ Benefits:**
+- **Complete customization** - No hardcoded values limit your configuration
+- **Environment flexibility** - Different values for different environments
+- **Compliance support** - Custom tags for compliance requirements
+- **Integration ready** - Works with any existing tagging strategy
+- **Future-proof** - Easy to adapt to changing requirements
 
 ## 🏗️ System Architecture Flowchart
 
@@ -22,6 +66,7 @@ graph TD
     C --> D[Core Variables<br/>aws_region, environment, project_name, create]
     C --> E[Instance Configurations<br/>instances map with all settings]
     C --> F[Global Settings<br/>global_settings object]
+    C --> F1[System Tags Variables<br/>managed_by_tag, feature_tag, ec2_service_principal]
     
     %% Advanced Variables
     C --> G[Advanced Variables<br/>ami_ssm_parameter, ignore_ami_changes, capacity_reservation_specification]
@@ -55,6 +100,7 @@ graph TD
     D --> S[Merge Global with Instance Configs]
     E --> S
     F --> S
+    F1 --> S
     G --> S
     H --> S
     I --> S
@@ -197,6 +243,14 @@ graph TD
 aws_region = "us-west-2"
 environment = "production"
 project_name = "my-project"
+
+# System Tags Configuration (Optional - uses defaults if not specified)
+managed_by_tag = "terraform"
+feature_tag = "adaptive-iam"
+ec2_service_principal = "ec2.amazonaws.com"
+assume_role_policy_version = "2012-10-17"
+default_role_name = "default"
+```
 
 # Instance configurations
 instances = {
@@ -457,6 +511,16 @@ logging = {
 |----------|------|----------|---------|-------------|
 | `putin_khuylo` | `bool` | ✅ Yes | `true` | Security agreement variable |
 
+### **🏷️ System Tags Variables**
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `managed_by_tag` | `string` | ❌ No | `"terraform"` | Value for ManagedBy tag |
+| `feature_tag` | `string` | ❌ No | `"adaptive-iam"` | Value for Feature tag |
+| `ec2_service_principal` | `string` | ❌ No | `"ec2.amazonaws.com"` | EC2 service principal for IAM roles |
+| `assume_role_policy_version` | `string` | ❌ No | `"2012-10-17"` | Version for IAM assume role policy |
+| `default_role_name` | `string` | ❌ No | `"default"` | Default role name for user data template |
+
 ## 🚀 Quick Start
 
 1. **Create terraform.tfvars file** with your configuration
@@ -486,7 +550,10 @@ logging = {
 ## 📁 Examples
 
 See the `examples/` directory for complete configuration examples:
-- `basic-instances.tfvars` - Basic EC2 instances
+
+### **🎯 Key Examples:**
+- `basic.tfvars` - Basic instance creation
+- `custom-system-tags.tfvars` - **Complete customization of all system tags and configuration**
 - `with-monitoring.tfvars` - With monitoring enabled
 - `with-logging.tfvars` - With logging enabled
 - `adaptive-iam.tfvars` - With adaptive IAM

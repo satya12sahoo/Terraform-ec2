@@ -664,6 +664,37 @@ variable "putin_khuylo" {
   default     = true
 }
 
+# System Tags and Configuration Variables
+variable "managed_by_tag" {
+  description = "Value for ManagedBy tag in all resources"
+  type        = string
+  default     = "terraform"
+}
+
+variable "feature_tag" {
+  description = "Value for Feature tag in IAM resources"
+  type        = string
+  default     = "adaptive-iam"
+}
+
+variable "ec2_service_principal" {
+  description = "EC2 service principal for IAM assume role policies"
+  type        = string
+  default     = "ec2.amazonaws.com"
+}
+
+variable "assume_role_policy_version" {
+  description = "Version for IAM assume role policy"
+  type        = string
+  default     = "2012-10-17"
+}
+
+variable "default_role_name" {
+  description = "Default role name for user data template when not specified"
+  type        = string
+  default     = "default"
+}
+
 # Monitoring Module Integration
 variable "enable_monitoring_module" {
   description = "Whether to enable the monitoring module"

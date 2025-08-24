@@ -31,12 +31,12 @@ resource "aws_iam_role" "smart_role" {
   permissions_boundary = var.smart_iam_role_permissions_boundary
   
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version = var.assume_role_policy_version
     Statement = [
       {
         Effect = "Allow"
         Principal = {
-          Service = "ec2.amazonaws.com"
+          Service = var.ec2_service_principal
         }
         Action = "sts:AssumeRole"
       }
@@ -49,8 +49,8 @@ resource "aws_iam_role" "smart_role" {
       Name        = var.smart_iam_role_name
       Environment = var.environment
       Project     = var.project_name
-      ManagedBy   = "terraform"
-      Feature     = "smart-iam"
+      ManagedBy   = var.managed_by_tag
+      Feature     = var.feature_tag
     }
   )
 }
@@ -73,8 +73,8 @@ resource "aws_iam_instance_profile" "smart_profile" {
       Name        = var.smart_iam_role_name
       Environment = var.environment
       Project     = var.project_name
-      ManagedBy   = "terraform"
-      Feature     = "smart-iam"
+      ManagedBy   = var.managed_by_tag
+      Feature     = var.feature_tag
     }
   )
 }
@@ -104,7 +104,7 @@ resource "aws_iam_instance_profile" "existing_role" {
       Role        = var.existing_iam_role_name
       Environment = var.environment
       Project     = var.project_name
-      ManagedBy   = "terraform"
+      ManagedBy   = var.managed_by_tag
     }
   )
 }
@@ -146,7 +146,7 @@ locals {
         {
           Environment = var.environment
           Project     = var.project_name
-          ManagedBy   = "terraform"
+          ManagedBy   = var.managed_by_tag
         }
       )
       
@@ -156,7 +156,7 @@ locals {
         base64encode(templatefile(var.user_data_template_path, instance_config.user_data_template_vars)) :
         base64encode(templatefile(var.user_data_template_path, {
           hostname = instance_config.name
-          role     = lookup(instance_config.user_data_template_vars, "role", "default")
+          role     = lookup(instance_config.user_data_template_vars, "role", var.default_role_name)
         }))
       ) : null
     })
