@@ -68,3 +68,34 @@ output "instances_by_role" {
     ]
   }
 }
+
+# IAM Instance Profile outputs
+output "iam_instance_profile_arn" {
+  description = "ARN of the created IAM instance profile"
+  value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    aws_iam_instance_profile.existing_role[0].arn : null
+}
+
+output "iam_instance_profile_name" {
+  description = "Name of the created IAM instance profile"
+  value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    aws_iam_instance_profile.existing_role[0].name : null
+}
+
+output "iam_instance_profile_id" {
+  description = "ID of the created IAM instance profile"
+  value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    aws_iam_instance_profile.existing_role[0].id : null
+}
+
+output "existing_iam_role_arn" {
+  description = "ARN of the existing IAM role"
+  value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    data.aws_iam_role.existing[0].arn : null
+}
+
+output "existing_iam_role_name" {
+  description = "Name of the existing IAM role"
+  value = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    data.aws_iam_role.existing[0].name : null
+}

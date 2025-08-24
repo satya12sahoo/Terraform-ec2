@@ -334,6 +334,17 @@ iam_role_permissions_boundary = null
 iam_role_tags = {}
 iam_instance_profile = null
 
+# IAM Instance Profile for existing role configuration
+create_instance_profile_for_existing_role = true
+existing_iam_role_name = "my-existing-ec2-role"  # Name of your existing IAM role
+instance_profile_name = "my-ec2-instance-profile"  # Optional: custom name for instance profile
+instance_profile_use_name_prefix = true
+instance_profile_path = "/"
+instance_profile_tags = {
+  Purpose = "EC2 Instance Profile"
+  CreatedBy = "Terraform"
+}
+
 # Security group configuration (disabled by default - use existing SGs)
 create_security_group = false
 security_group_name = null

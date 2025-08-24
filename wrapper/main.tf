@@ -2,7 +2,37 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Data source to get existing IAM role
+data "aws_iam_role" "existing" {
+  count = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 1 : 0
+  name  = var.existing_iam_role_name
+}
+
+# Create IAM instance profile for existing role
+resource "aws_iam_instance_profile" "existing_role" {
+  count = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 1 : 0
+  
+  name = var.instance_profile_name != null ? var.instance_profile_name : "${var.existing_iam_role_name}-instance-profile"
+  path = var.instance_profile_path
+  role = data.aws_iam_role.existing[0].name
+  
+  tags = merge(
+    var.instance_profile_tags,
+    {
+      Name        = var.instance_profile_name != null ? var.instance_profile_name : "${var.existing_iam_role_name}-instance-profile"
+      Role        = var.existing_iam_role_name
+      Environment = var.environment
+      Project     = var.project_name
+      ManagedBy   = "terraform"
+    }
+  )
+}
+
 locals {
+  # Determine which instance profile to use
+  instance_profile_name = var.create_instance_profile_for_existing_role && var.existing_iam_role_name != null ? 
+    aws_iam_instance_profile.existing_role[0].name : var.iam_instance_profile
+  
   # Merge global settings with instance-specific settings
   merged_instances = {
     for instance_name, instance_config in var.instances : instance_name => merge(instance_config, {
@@ -96,7 +126,7 @@ module "ec2_instances" {
   iam_role_description = var.iam_role_description
   iam_role_permissions_boundary = var.iam_role_permissions_boundary
   iam_role_tags = var.iam_role_tags
-  iam_instance_profile = var.iam_instance_profile
+  iam_instance_profile = local.instance_profile_name
   
   # Metadata options
   metadata_options = each.value.metadata_options

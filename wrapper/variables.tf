@@ -449,8 +449,57 @@ variable "iam_role_permissions_boundary" {
   default     = null
 }
 
+variable "iam_role_policies" {
+  description = "Policies attached to the IAM role"
+  type        = map(string)
+  default     = {}
+}
+
 variable "iam_role_tags" {
   description = "A map of additional tags to add to the IAM role/profile created"
+  type        = map(string)
+  default     = {}
+}
+
+variable "iam_instance_profile" {
+  description = "IAM Instance Profile to launch the instance with. Specified as the name of the Instance Profile"
+  type        = string
+  default     = null
+}
+
+# New variables for existing IAM role support
+variable "existing_iam_role_name" {
+  description = "Name of an existing IAM role to create an instance profile for"
+  type        = string
+  default     = null
+}
+
+variable "create_instance_profile_for_existing_role" {
+  description = "Whether to create an IAM instance profile for an existing IAM role"
+  type        = bool
+  default     = false
+}
+
+variable "instance_profile_name" {
+  description = "Name for the IAM instance profile (if not specified, will use the role name)"
+  type        = string
+  default     = null
+}
+
+variable "instance_profile_use_name_prefix" {
+  description = "Determines whether the instance profile name is used as a prefix"
+  type        = bool
+  default     = true
+}
+
+variable "instance_profile_path" {
+  description = "IAM instance profile path"
+  type        = string
+  default     = null
+}
+
+variable "instance_profile_tags" {
+  description = "A map of additional tags to add to the IAM instance profile"
   type        = map(string)
   default     = {}
 }

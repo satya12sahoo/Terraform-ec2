@@ -239,6 +239,12 @@ The wrapper exposes **ALL variables** from the base EC2 module. Here are the key
 - `iam_role_permissions_boundary` - Permissions boundary
 - `iam_role_tags` - IAM role tags
 - `iam_instance_profile` - Existing IAM profile
+- `existing_iam_role_name` - Name of existing IAM role to create instance profile for
+- `create_instance_profile_for_existing_role` - Whether to create instance profile for existing role
+- `instance_profile_name` - Custom name for the instance profile
+- `instance_profile_use_name_prefix` - Use name prefix for instance profile
+- `instance_profile_path` - Instance profile path
+- `instance_profile_tags` - Instance profile tags
 
 ### Security Group Configuration
 - `create_security_group` - Create security group
@@ -436,6 +442,97 @@ instances = {
       SpotInstance = "true"
     }
   }
+}
+```
+
+### IAM Instance Profile for Existing Role
+
+The wrapper can create an IAM instance profile for an existing IAM role. This is useful when you have an existing IAM role but need to create an instance profile for EC2 instances to use it.
+
+```hcl
+# IAM Instance Profile for existing role configuration
+create_instance_profile_for_existing_role = true
+existing_iam_role_name = "my-existing-ec2-role"  # Your existing IAM role name
+instance_profile_name = "my-ec2-instance-profile"  # Optional: custom name for instance profile
+instance_profile_use_name_prefix = true
+instance_profile_path = "/"
+instance_profile_tags = {
+  Purpose = "EC2 Instance Profile"
+  CreatedBy = "Terraform"
+  Environment = "production"
+}
+
+# Instance configurations (set create_iam_instance_profile = false to use the created profile)
+instances = {
+  web_server = {
+    name                        = "web-server"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-xxx"
+    vpc_security_group_ids     = ["sg-xxx"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "web-server"
+      role     = "web"
+    }
+    
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+    }
+    
+    create_iam_instance_profile = false  # Use the created instance profile
+    iam_role_policies          = {}
+    
+    tags = {
+      Name = "web-server"
+      Role = "web"
+    }
+  }
+}
+```
+
+**Outputs for IAM Instance Profile:**
+```bash
+# Get the created instance profile ARN
+terraform output iam_instance_profile_arn
+
+# Get the instance profile name
+terraform output iam_instance_profile_name
+
+# Get the existing IAM role ARN
+terraform output existing_iam_role_arn
+```
+
+**How it works:**
+1. The wrapper uses a data source to fetch the existing IAM role
+2. Creates an IAM instance profile that references the existing role
+3. All instances will use this instance profile automatically
+4. The instance profile is tagged and managed by Terraform
+
+**Prerequisites:**
+- The IAM role must already exist in your AWS account
+- The IAM role must have a trust policy that allows EC2 instances to assume it
+- You must have permissions to create IAM instance profiles
+
+**Example IAM Role Trust Policy:**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
 }
 ```
 
