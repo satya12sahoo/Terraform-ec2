@@ -104,13 +104,13 @@ variable "global_settings" {
 }
 
 variable "user_data_template_path" {
-  description = "Path to the user data template file. Set to null for fresh EC2 instances without any user data."
+  description = "Path to the user data template file. Required if enable_user_data_template is true."
   type        = string
   default     = null
 }
 
 variable "enable_user_data_template" {
-  description = "Whether to use the user data template or provide raw user data. Set to false for fresh EC2 instances without any user data."
+  description = "Whether to use a user data template file or provide raw user data. Set to false to use raw user_data directly."
   type        = bool
   default     = false
 }
@@ -334,7 +334,7 @@ variable "tenancy" {
 }
 
 variable "user_data" {
-  description = "The user data to provide when launching the instance. Do not pass gzip-compressed data via this argument; see user_data_base64 instead"
+  description = "The user data to provide when launching the instance. Can be inline commands or a script. Do not pass gzip-compressed data via this argument; see user_data_base64 instead"
   type        = string
   default     = null
 }
@@ -689,11 +689,7 @@ variable "assume_role_policy_version" {
   default     = "2012-10-17"
 }
 
-variable "create_fresh_ec2" {
-  description = "Create fresh EC2 instances without any user data or templates. Overrides enable_user_data_template and user_data_template_path."
-  type        = bool
-  default     = true
-}
+
 
 variable "default_role_name" {
   description = "Default role name for user data template when not specified"

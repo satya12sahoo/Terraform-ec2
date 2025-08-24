@@ -11,7 +11,7 @@ A dynamic Terraform wrapper module for creating multiple EC2 instances with comp
 - **Comprehensive configuration** - All base module variables exposed via `tfvars`
 - **Monitoring & Logging integration** - Optional CloudWatch monitoring and centralized logging
 - **Complete user input control** - All system tags, service principals, and defaults configurable
-- **Fresh EC2 support** - Create instances without any user data or templates
+- **Flexible user data** - Inline commands, template files, or no user data
 
 ## 🎯 Zero Hardcoded Values Approach
 
@@ -33,13 +33,13 @@ ec2_service_principal = "ec2.amazonaws.com"     # Default: "ec2.amazonaws.com"
 assume_role_policy_version = "2012-10-17"       # Default: "2012-10-17"
 ```
 
-#### **📄 User Data Templates:**
+#### **📄 User Data Configuration:**
 ```hcl
-# Default values for user data templates
+# User data configuration options
 default_role_name = "default"                   # Default: "default"
-user_data_template_path = "templates/user_data.sh"  # Default: null (fresh EC2)
-enable_user_data_template = false               # Default: false (fresh EC2)
-create_fresh_ec2 = true                         # Default: true (fresh EC2)
+user_data_template_path = "templates/user_data.sh"  # Default: null
+enable_user_data_template = false               # Default: false
+user_data = "#!/bin/bash\necho 'Hello World'"   # Inline commands
 ```
 
 #### **🌍 Environment & Project:**
@@ -57,65 +57,160 @@ project_name = "my-project"
 - **Integration ready** - Works with any existing tagging strategy
 - **Future-proof** - Easy to adapt to changing requirements
 
-## 🆕 Fresh EC2 Support
+## 📄 Flexible User Data Configuration
 
-This wrapper supports creating **fresh EC2 instances** without any user data or templates, perfect for manual configuration or testing.
+This wrapper supports **flexible user data configuration** allowing you to use inline commands, template files, or no user data at all.
 
-### **✅ Fresh EC2 Features:**
+### **✅ User Data Options:**
 
-#### **🚀 Default Behavior:**
+#### **🚀 Option 1: Inline Commands (Recommended)**
 ```hcl
-# By default, creates fresh EC2 instances
-create_fresh_ec2 = true                    # Default: true
-enable_user_data_template = false          # Default: false
-user_data_template_path = null             # Default: null
+# Simple inline user data
+user_data = <<-EOF
+#!/bin/bash
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+echo "Hello from $(hostname)" > /var/www/html/index.html
+EOF
 ```
 
-#### **🔧 Fresh EC2 Configuration:**
+#### **📝 Option 2: Template File**
 ```hcl
-# Fresh EC2 with minimal configuration
-aws_region = "us-west-2"
-environment = "dev"
-project_name = "test-project"
+# Use a template file
+enable_user_data_template = true
+user_data_template_path = "templates/user_data.sh"
 
-# Fresh EC2 instances (no user data)
-instances = {
-  test-instance = {
-    name = "test-instance"
-    ami = "ami-12345678"
-    instance_type = "t3.micro"
-    subnet_id = "subnet-12345678"
-    vpc_security_group_ids = ["sg-12345678"]
-    associate_public_ip_address = true
-    key_name = "test-key"
-    
-    root_block_device = {
-      size = 20
-      type = "gp3"
-      encrypted = true
-    }
-    
-    tags = {
-      Name = "test-instance"
-      Purpose = "testing"
-    }
-  }
+# Template variables
+user_data_template_vars = {
+  hostname = "web-server"
+  role = "web"
+  environment = "production"
 }
 ```
 
-#### **📝 User Data Options:**
+#### **🔧 Option 3: No User Data**
 ```hcl
-# Option 1: Fresh EC2 (no user data)
-create_fresh_ec2 = true
+# No user data - manual configuration
+user_data = null
+enable_user_data_template = false
+```
 
-# Option 2: Custom user data
-create_fresh_ec2 = false
-user_data = "#!/bin/bash\necho 'Hello World'"
+### **✅ Example Configurations:**
 
-# Option 3: User data template
-create_fresh_ec2 = false
-enable_user_data_template = true
-user_data_template_path = "templates/user_data.sh"
+#### **🌐 Web Server Setup:**
+```hcl
+user_data = <<-EOF
+#!/bin/bash
+# Update system
+yum update -y
+
+# Install web server
+yum install -y httpd php mysql
+
+# Start and enable services
+systemctl start httpd
+systemctl enable httpd
+systemctl start php-fpm
+systemctl enable php-fpm
+
+# Configure firewall
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+
+# Create web page
+echo "<h1>Welcome to $(hostname)</h1>" > /var/www/html/index.html
+EOF
+```
+
+#### **🗄️ Database Server Setup:**
+```hcl
+user_data = <<-EOF
+#!/bin/bash
+# Update system
+yum update -y
+
+# Install MySQL
+yum install -y mysql-server
+
+# Start and enable MySQL
+systemctl start mysqld
+systemctl enable mysqld
+
+# Secure MySQL installation
+mysql_secure_installation <<EOF2
+y
+password123
+password123
+y
+y
+y
+y
+EOF2
+
+# Create database and user
+mysql -u root -ppassword123 <<EOF3
+CREATE DATABASE myapp;
+CREATE USER 'myapp'@'%' IDENTIFIED BY 'mypassword';
+GRANT ALL PRIVILEGES ON myapp.* TO 'myapp'@'%';
+FLUSH PRIVILEGES;
+EOF3
+EOF
+```
+
+#### **🔧 Application Server Setup:**
+```hcl
+user_data = <<-EOF
+#!/bin/bash
+# Update system
+yum update -y
+
+# Install Node.js
+curl -sL https://rpm.nodesource.com/setup_18.x | bash -
+yum install -y nodejs
+
+# Install PM2
+npm install -g pm2
+
+# Create application directory
+mkdir -p /opt/myapp
+cd /opt/myapp
+
+# Create simple Node.js app
+cat > app.js << 'APPEOF'
+const express = require('express');
+const app = express();
+const port = 3000;
+
+app.get('/', (req, res) => {
+  res.send('Hello from Node.js!');
+});
+
+app.listen(port, () => {
+  console.log(\`App running on port \${port}\`);
+});
+APPEOF
+
+# Create package.json
+cat > package.json << 'PKGEOF'
+{
+  "name": "myapp",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+PKGEOF
+
+# Install dependencies and start app
+npm install
+pm2 start app.js
+pm2 startup
+pm2 save
+EOF
 ```
 
 ## 🏗️ System Architecture Flowchart
@@ -225,11 +320,9 @@ graph TD
     UU --> FFF[Create Logging Dashboard<br/>logging.logging_dashboard_name]
     
     %% User Data Processing
-    P --> GGG{create_fresh_ec2?}
-    GGG -->|Yes| III[Fresh EC2 - No User Data]
-    GGG -->|No| GGG1{enable_user_data_template?}
-    GGG1 -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
-    GGG1 -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
+    P --> GGG{enable_user_data_template?}
+    GGG -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
+    GGG -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
     
     %% Spot Instance Processing
     Q --> JJJ{create_spot_instance?}
@@ -310,10 +403,10 @@ aws_region = "us-west-2"
 environment = "production"
 project_name = "my-project"
 
-# Fresh EC2 Configuration (default behavior)
-create_fresh_ec2 = true                    # Creates instances without user data
-enable_user_data_template = false          # No user data templates
-user_data_template_path = null             # No template path
+# User Data Configuration (optional)
+enable_user_data_template = false          # Use inline user_data instead of template
+user_data_template_path = null             # No template path needed
+user_data = null                           # No user data by default
 
 # System Tags Configuration (Optional - uses defaults if not specified)
 managed_by_tag = "terraform"
@@ -535,9 +628,8 @@ logging = {
 
 | Variable | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `create_fresh_ec2` | `bool` | ❌ No | `true` | Create fresh EC2 instances without any user data |
-| `enable_user_data_template` | `bool` | ❌ No | `false` | Enable user data template |
-| `user_data_template_path` | `string` | ❌ No | `null` | Path to user data template |
+| `enable_user_data_template` | `bool` | ❌ No | `false` | Enable user data template file |
+| `user_data_template_path` | `string` | ❌ No | `null` | Path to user data template file |
 | `user_data` | `string` | ❌ No | `null` | Raw user data string |
 | `user_data_base64` | `string` | ❌ No | `null` | Base64 encoded user data |
 | `user_data_replace_on_change` | `bool` | ❌ No | `null` | Replace user data on changes |
@@ -624,8 +716,8 @@ logging = {
 See the `examples/` directory for complete configuration examples:
 
 ### **🎯 Key Examples:**
-- `fresh-ec2.tfvars` - **Fresh EC2 instances without user data (default behavior)**
 - `basic.tfvars` - Basic instance creation
+- `with-user-data.tfvars` - **EC2 instances with inline user data commands**
 - `custom-system-tags.tfvars` - **Complete customization of all system tags and configuration**
 - `with-monitoring.tfvars` - With monitoring enabled
 - `with-logging.tfvars` - With logging enabled
