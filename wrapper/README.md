@@ -48,55 +48,114 @@ The flowcharts below show the complete end-to-end resource creation logic for th
 - **Left to Right**: Alternative paths
 - **Arrows**: Data/control flow
 
-### System Flowchart
+### Complete System Architecture Flowchart
 
 ```mermaid
 graph TD
-    A[User Input: terraform.tfvars] --> B[Wrapper Module]
-    B --> C{Parse Configuration}
+    A[User Input: terraform.tfvars] --> B[Wrapper Module Processing]
     
+    B --> C{Parse All Configurations}
     C --> D[Global Settings]
     C --> E[Instance Configurations]
     C --> F[IAM Configuration]
+    C --> G[Security Group Configuration]
+    C --> H[Monitoring Configuration]
     
-    D --> G[Process Global Overrides]
-    E --> H[Process Instance Configs]
-    F --> I{Check IAM Strategy}
+    D --> I[Merge Global with Instance Configs]
+    E --> I
+    F --> J{IAM Strategy Decision}
+    G --> K{Security Group Strategy}
+    H --> L{Enable Monitoring?}
     
-    G --> J[Merge Configurations]
-    H --> J
-    I --> K{Smart IAM Enabled?}
+    %% IAM Decision Logic
+    J --> M{Smart IAM Enabled?}
+    M -->|Yes| N[Smart IAM Logic]
+    M -->|No| O{Existing Role Specified?}
     
-    K -->|Yes| L[Smart IAM Logic]
-    K -->|No| M{Existing Role?}
+    N --> P{Check Existing Role}
+    P -->|Exists| Q[Use Existing Role]
+    P -->|Not Exists| R{Check Existing Profile}
+    R -->|Exists| S[Create Role for Profile]
+    R -->|Not Exists| T[Create Both Role & Profile]
     
-    L --> N[Check Existing Resources]
-    N --> O{Role Exists?}
-    O -->|Yes| P[Use Existing Role]
-    O -->|No| Q[Create New Role]
+    O -->|Yes| U[Create Instance Profile for Role]
+    O -->|No| V{Instance Profile Specified?}
+    V -->|Yes| W[Use Existing Profile]
+    V -->|No| X[No IAM Resources]
     
-    M -->|Yes| R[Create Instance Profile for Role]
-    M -->|No| S[Use Specified Profile]
+    %% Security Group Logic
+    K --> Y{Create Security Group?}
+    Y -->|Yes| Z[Create New Security Group]
+    Y -->|No| AA[Use Existing Security Groups]
     
-    P --> T[Create Instance Profile]
-    Q --> T
-    R --> U[Final Instance Profile]
-    S --> U
-    T --> U
+    %% Monitoring Logic
+    L -->|Yes| BB[Monitoring Module Processing]
+    L -->|No| CC[Skip Monitoring]
     
-    J --> V[Base EC2 Module]
-    U --> V
+    BB --> DD[Create CloudWatch Agent IAM Role]
+    BB --> EE[Create CloudWatch Dashboard]
+    BB --> FF[Create CloudWatch Alarms]
+    BB --> GG[Create CloudWatch Log Groups]
+    BB --> HH[Create SNS Topic & Subscriptions]
+    BB --> II[Create Agent Configuration]
     
-    V --> W[Create EC2 Instances]
-    W --> X[Output Results]
+    %% Resource Creation
+    Q --> JJ[Final IAM Configuration]
+    S --> JJ
+    T --> JJ
+    U --> JJ
+    W --> JJ
+    X --> JJ
     
+    Z --> KK[Final Security Group Configuration]
+    AA --> KK
+    
+    DD --> LL[Monitoring Resources Created]
+    EE --> LL
+    FF --> LL
+    GG --> LL
+    HH --> LL
+    II --> LL
+    
+    I --> MM[Base EC2 Module]
+    JJ --> MM
+    KK --> MM
+    LL --> MM
+    CC --> MM
+    
+    MM --> NN[Create EC2 Instances]
+    NN --> OO[Attach IAM Instance Profiles]
+    NN --> PP[Attach Security Groups]
+    NN --> QQ[Configure User Data]
+    NN --> RR[Apply Tags & Naming]
+    
+    OO --> SS[Final EC2 Instances]
+    PP --> SS
+    QQ --> SS
+    RR --> SS
+    
+    SS --> TT[Generate Outputs]
+    TT --> UU[Instance IDs, IPs, ARNs]
+    TT --> VV[IAM Resources Created]
+    TT --> WW[Security Group Information]
+    TT --> XX[Monitoring Resources]
+    TT --> YY[Complete Resource Summary]
+    
+    %% Styling
     style A fill:#e1f5fe
-    style X fill:#c8e6c9
-    style L fill:#fff3e0
-    style V fill:#f3e5f5
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style M fill:#ffebee
+    style K fill:#ffebee
+    style L fill:#ffebee
+    style N fill:#fff3e0
+    style Y fill:#ffebee
+    style BB fill:#e8f5e8
+    style MM fill:#f3e5f5
+    style SS fill:#c8e6c9
+    style TT fill:#e1f5fe
+    style YY fill:#c8e6c9
 ```
-
-### Complete End-to-End Resource Creation Flowchart
 
 ```mermaid
 graph TD
@@ -240,355 +299,113 @@ graph TD
 
 
 
-### Detailed IAM Resource Creation Flowchart
+### Complete Resource Creation Decision Matrix
 
 ```mermaid
 graph TD
-    A[IAM Configuration Input] --> B{Smart IAM Enabled?}
+    A[User Input: terraform.tfvars] --> B[Wrapper Module Processing]
     
-    B -->|Yes| C[Smart IAM Flow]
-    B -->|No| D{Existing Role Specified?}
+    B --> C{Parse All Configurations}
+    C --> D[Global Settings]
+    C --> E[Instance Configurations]
+    C --> F[IAM Configuration]
+    C --> G[Security Group Configuration]
+    C --> H[Monitoring Configuration]
     
-    %% Smart IAM Flow
-    C --> E[Data Source: aws_iam_role.smart_existing_role]
-    C --> F[Data Source: aws_iam_instance_profile.smart_existing_profile]
+    D --> I[Merge Global with Instance Configs]
+    E --> I
+    F --> J{IAM Strategy Decision}
+    G --> K{Security Group Strategy}
+    H --> L{Enable Monitoring?}
     
-    E --> G{Role Found?}
-    F --> H{Instance Profile Found?}
+    %% IAM Decision Logic
+    J --> M{Smart IAM Enabled?}
+    M -->|Yes| N[Smart IAM Logic]
+    M -->|No| O{Existing Role Specified?}
     
-    G -->|Yes| I[Use Existing Role]
-    G -->|No| J[Create New Role]
-    H -->|Yes| K[Use Existing Instance Profile]
-    H -->|No| L[Create New Instance Profile]
+    N --> P{Check Existing Role}
+    P -->|Exists| Q[Use Existing Role]
+    P -->|Not Exists| R{Check Existing Profile}
+    R -->|Exists| S[Create Role for Profile]
+    R -->|Not Exists| T[Create Both Role & Profile]
     
-    I --> M{Instance Profile Exists?}
-    J --> N[Resource: aws_iam_role.smart_role]
-    K --> O{Force Create Role?}
-    L --> P[Resource: aws_iam_instance_profile.smart_profile]
+    O -->|Yes| U[Create Instance Profile for Role]
+    O -->|No| V{Instance Profile Specified?}
+    V -->|Yes| W[Use Existing Profile]
+    V -->|No| X[No IAM Resources]
     
-    M -->|Yes| Q[Link to Existing Profile]
-    M -->|No| R[Create Instance Profile for Existing Role]
-    N --> S[Attach Policies: aws_iam_role_policy_attachment.smart_policies]
-    O -->|Yes| T[Create New Role Anyway]
-    O -->|No| U[Use Existing Profile Only]
-    P --> V[Link to Created Role]
+    %% Security Group Logic
+    K --> Y{Create Security Group?}
+    Y -->|Yes| Z[Create New Security Group]
+    Y -->|No| AA[Use Existing Security Groups]
     
-    Q --> W[Final Instance Profile: smart_profile]
-    R --> W
-    S --> V
-    T --> V
-    U --> W
-    V --> W
+    %% Monitoring Logic
+    L -->|Yes| BB[Monitoring Module Processing]
+    L -->|No| CC[Skip Monitoring]
     
-    %% Traditional IAM Flow
-    D -->|Yes| X[Data Source: aws_iam_role.existing]
-    D -->|No| Y{Instance Profile Specified?}
+    BB --> DD[Create CloudWatch Agent IAM Role]
+    BB --> EE[Create CloudWatch Dashboard]
+    BB --> FF[Create CloudWatch Alarms]
+    BB --> GG[Create CloudWatch Log Groups]
+    BB --> HH[Create SNS Topic & Subscriptions]
+    BB --> II[Create Agent Configuration]
     
-    X --> Z[Resource: aws_iam_instance_profile.existing_role]
-    Y -->|Yes| AA[Use Specified Profile]
-    Y -->|No| BB[No IAM Resources]
+    %% Resource Creation
+    Q --> JJ[Final IAM Configuration]
+    S --> JJ
+    T --> JJ
+    U --> JJ
+    W --> JJ
+    X --> JJ
     
-    Z --> CC[Final Instance Profile: existing_role]
-    AA --> DD[Final Instance Profile: specified]
-    BB --> EE[Final Instance Profile: null]
+    Z --> KK[Final Security Group Configuration]
+    AA --> KK
     
-    CC --> FF[Final Decision: coalesce]
-    DD --> FF
-    EE --> FF
-    W --> FF
+    DD --> LL[Monitoring Resources Created]
+    EE --> LL
+    FF --> LL
+    GG --> LL
+    HH --> LL
+    II --> LL
     
-    FF --> GG[Instance Profile for EC2]
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style GG fill:#c8e6c9
-    style C fill:#fff3e0
-    style N fill:#f3e5f5
-    style Z fill:#e8f5e8
-```
-
-### EC2 Instance Creation Flowchart
-
-```mermaid
-graph TD
-    A[Instance Configuration] --> B{Create Instances?}
-    
-    B -->|Yes| C[For Each Instance in Map]
-    B -->|No| D[Skip EC2 Creation]
-    
-    C --> E[Process Instance Config]
-    E --> F[Merge with Global Settings]
-    F --> G[Validate Configuration]
-    
-    G --> H{Configuration Valid?}
-    H -->|Yes| I[Create EC2 Instance Resource]
-    H -->|No| J[Configuration Error]
-    
-    I --> K[Resource: aws_instance.this]
-    K --> L[Apply Basic Configuration]
-    L --> M[Configure Network Settings]
-    M --> N[Configure Storage]
-    N --> O[Configure IAM]
-    O --> P[Configure Security]
-    P --> Q[Configure User Data]
-    Q --> R[Apply Tags]
-    
-    L --> L1[Set AMI, Instance Type, AZ]
-    M --> M1[Set Subnet, Security Groups, Public IP]
-    N --> N1[Configure Root Block Device]
-    N --> N2[Configure EBS Volumes]
-    O --> O1[Attach IAM Instance Profile]
-    P --> P1[Set Security Group Rules]
-    Q --> Q1[Process User Data Template]
-    R --> R1[Apply Instance Tags]
-    R --> R2[Apply Global Tags]
-    
-    D --> S[No EC2 Resources Created]
-    J --> T[Terraform Error]
-    
-    R --> U[Instance Created Successfully]
-    S --> V[Output: No Instances]
-    T --> W[Output: Error]
-    
-    U --> X[Generate Outputs]
-    X --> Y[Instance IDs]
-    X --> Z[IP Addresses]
-    X --> AA[Instance Details]
-    X --> BB[Configuration Summary]
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style U fill:#c8e6c9
-    style I fill:#f3e5f5
-    style K fill:#e8f5e8
-    style T fill:#ffebee
-```
-
-### Security Group Creation Flowchart
-
-```mermaid
-graph TD
-    A[Security Group Configuration] --> B{Create Security Group?}
-    
-    B -->|Yes| C[Security Group Creation Flow]
-    B -->|No| D{Existing Security Groups Specified?}
-    
-    C --> E[Resource: aws_security_group.this]
-    E --> F[Configure Security Group Name]
-    F --> G[Set VPC ID]
-    G --> H[Configure Description]
-    H --> I[Apply Security Group Tags]
-    
-    I --> J[Configure Ingress Rules]
-    J --> K[Configure Egress Rules]
-    K --> L[Security Group Created]
-    
-    D -->|Yes| M[Use Existing Security Groups]
-    D -->|No| N[No Security Groups]
-    
-    M --> O[Validate Security Group IDs]
-    O --> P[Check Security Group Existence]
-    P --> Q{All SGs Valid?}
-    Q -->|Yes| R[Use Specified Security Groups]
-    Q -->|No| S[Security Group Error]
-    
-    N --> T[No Security Group Assignment]
-    
-    L --> U[Final Security Group Decision]
-    R --> U
-    T --> U
-    S --> V[Terraform Error]
-    
-    U --> W[Attach to EC2 Instances]
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style W fill:#c8e6c9
-    style C fill:#fff3e0
-    style E fill:#f3e5f5
-    style S fill:#ffebee
-```
-
-### Security Group Toggle Feature Flowchart
-
-```mermaid
-graph TD
-    A[Security Group Input] --> B{Smart Security Group Enabled?}
-    
-    B -->|Yes| C[Smart Security Group Logic]
-    B -->|No| D{Create Security Group?}
-    
-    %% Smart Security Group Logic
-    C --> E[Data Source: Check Existing Security Groups]
-    E --> F{Existing Security Groups Found?}
-    
-    F -->|Yes| G[Use Existing Security Groups]
-    F -->|No| H{Create New Security Group?}
-    
-    G --> I[Validate Existing SGs]
-    H -->|Yes| J[Create New Security Group]
-    H -->|No| K[No Security Groups]
-    
-    I --> L{All SGs Valid?}
-    J --> M[Resource: aws_security_group.this]
-    K --> N[No Security Group Assignment]
-    
-    L -->|Yes| O[Use Existing Security Groups]
-    L -->|No| P[Create New Security Group]
-    
-    M --> Q[Configure Security Group Rules]
-    P --> R[Resource: aws_security_group.this]
-    
-    Q --> S[Security Group Created]
-    R --> T[Configure Security Group Rules]
-    N --> U[No Security Groups]
-    
-    S --> V[Final Security Group Decision]
-    T --> W[Security Group Created]
-    U --> V
-    
-    W --> V
-    
-    %% Traditional Logic
-    D -->|Yes| X[Create Security Group Resource]
-    D -->|No| Y{Existing SGs Specified?}
-    
-    X --> Z[Resource: aws_security_group.this]
-    Y -->|Yes| AA[Use Specified Security Groups]
-    Y -->|No| BB[No Security Groups]
-    
-    Z --> CC[Configure Security Group]
-    AA --> DD[Validate Security Groups]
-    BB --> EE[No Security Group Assignment]
-    
-    CC --> FF[Security Group Created]
-    DD --> GG{All SGs Valid?}
-    EE --> HH[No Security Groups]
-    
-    GG -->|Yes| II[Use Specified Security Groups]
-    GG -->|No| JJ[Security Group Error]
-    
-    FF --> KK[Final Security Group Decision]
-    II --> KK
-    HH --> KK
-    JJ --> LL[Terraform Error]
-    
-    V --> MM[Attach to EC2 Instances]
+    I --> MM[Base EC2 Module]
+    JJ --> MM
     KK --> MM
+    LL --> MM
+    CC --> MM
+    
+    MM --> NN[Create EC2 Instances]
+    NN --> OO[Attach IAM Instance Profiles]
+    NN --> PP[Attach Security Groups]
+    NN --> QQ[Configure User Data]
+    NN --> RR[Apply Tags & Naming]
+    
+    OO --> SS[Final EC2 Instances]
+    PP --> SS
+    QQ --> SS
+    RR --> SS
+    
+    SS --> TT[Generate Outputs]
+    TT --> UU[Instance IDs, IPs, ARNs]
+    TT --> VV[IAM Resources Created]
+    TT --> WW[Security Group Information]
+    TT --> XX[Monitoring Resources]
+    TT --> YY[Complete Resource Summary]
     
     %% Styling
     style A fill:#e1f5fe
-    style MM fill:#c8e6c9
-    style C fill:#fff3e0
-    style X fill:#f3e5f5
-    style JJ fill:#ffebee
-```
-
-### User Data Template Processing Flowchart
-
-```mermaid
-graph TD
-    A[User Data Configuration] --> B{Enable User Data Template?}
-    
-    B -->|Yes| C{Template Path Specified?}
-    B -->|No| D[Use Raw User Data]
-    
-    C -->|Yes| E[Read Template File]
-    C -->|No| F[Use Default Template]
-    
-    E --> G{Template File Exists?}
-    F --> H[Use templates/user_data.sh]
-    D --> I[Use user_data Variable]
-    
-    G -->|Yes| J[Load Template Content]
-    G -->|No| K[Template File Error]
-    
-    H --> L[Load Default Template]
-    J --> M[Process Template Variables]
-    L --> M
-    I --> N[Use Raw User Data]
-    
-    M --> O{Template Variables Provided?}
-    O -->|Yes| P[Substitute Variables]
-    O -->|No| Q[Use Template as-is]
-    
-    P --> R[templatefile Function]
-    Q --> S[Raw Template Content]
-    N --> T[Base64 Encode]
-    
-    R --> U[Processed Template]
-    S --> U
-    U --> V[Base64 Encode]
-    
-    V --> W[user_data_base64]
-    T --> W
-    
-    W --> X[Attach to EC2 Instance]
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style X fill:#c8e6c9
-    style R fill:#fff3e0
-    style V fill:#f3e5f5
+    style B fill:#fff3e0
+    style C fill:#f3e5f5
+    style M fill:#ffebee
     style K fill:#ffebee
-```
-
-### Resource Creation Decision Matrix
-
-```mermaid
-graph TD
-    A[Input Configuration] --> B{Smart IAM Enabled?}
-    
-    B -->|Yes| C[Smart IAM Decision Matrix]
-    B -->|No| D[Traditional IAM Decision Matrix]
-    
-    %% Smart IAM Matrix
-    C --> E{Existing Role?}
-    E -->|Yes| F{Existing Instance Profile?}
-    E -->|No| G{Existing Instance Profile?}
-    
-    F -->|Yes| H[Use Both Existing]
-    F -->|No| I[Use Existing Role + Create Profile]
-    G -->|Yes| J[Create Role + Use Existing Profile]
-    G -->|No| K[Create Both Role and Profile]
-    
-    H --> L[No Resources Created]
-    I --> M[Create: Instance Profile Only]
-    J --> N[Create: IAM Role Only]
-    K --> O[Create: Both Role and Profile]
-    
-    %% Traditional Matrix
-    D --> P{Existing Role Specified?}
-    P -->|Yes| Q[Create Instance Profile for Role]
-    P -->|No| R{Instance Profile Specified?}
-    
-    Q --> S[Create: Instance Profile Only]
-    R -->|Yes| T[Use Existing Instance Profile]
-    R -->|No| U[No IAM Resources]
-    
-    T --> V[No Resources Created]
-    U --> W[No IAM Resources]
-    
-    %% Final Resource Summary
-    L --> X[Final Resource Creation Summary]
-    M --> X
-    N --> X
-    O --> X
-    S --> X
-    V --> X
-    W --> X
-    
-    X --> Y[IAM Resources Created]
-    X --> Z[EC2 Resources Created]
-    X --> AA[Outputs Generated]
-    
-    %% Styling
-    style A fill:#e1f5fe
-    style X fill:#c8e6c9
-    style C fill:#fff3e0
-    style D fill:#f3e5f5
-    style H fill:#e8f5e8
-    style O fill:#fce4ec
+    style L fill:#ffebee
+    style N fill:#fff3e0
+    style Y fill:#ffebee
+    style BB fill:#e8f5e8
+    style MM fill:#f3e5f5
+    style SS fill:#c8e6c9
+    style TT fill:#e1f5fe
+    style YY fill:#c8e6c9
 ```
 
 ### Resource Relationship Diagram
@@ -738,6 +555,7 @@ graph TB
 - **Zero Hardcoded Values** - Everything configurable via `tfvars`
 - **Template-based User Data** - Dynamic user data generation
 - **Comprehensive Variable Exposure** - All base module variables available
+- **Maximum Naming & Tagging** - Complete control over resource naming and tagging with extensive options
 
 ### 🔐 **IAM Management Features**
 - **Existing IAM Role Support** - Use existing roles with instance profile creation
