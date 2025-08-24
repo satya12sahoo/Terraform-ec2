@@ -504,9 +504,9 @@ variable "instance_profile_tags" {
   default     = {}
 }
 
-# Smart IAM feature variables (Toggle)
+# Intelligent IAM feature variables (Toggle)
 variable "enable_smart_iam" {
-  description = "Enable smart IAM feature that automatically determines whether to create IAM role or just instance profile"
+  description = "Enable intelligent IAM feature that automatically determines whether to create IAM role or just instance profile"
   type        = bool
   default     = false
 }
@@ -518,43 +518,43 @@ variable "smart_iam_role_name" {
 }
 
 variable "smart_iam_role_description" {
-  description = "Description for the IAM role in smart mode"
+  description = "Description for the IAM role in intelligent mode"
   type        = string
-  default     = "Smart IAM role created by Terraform wrapper"
+  default     = "Intelligent IAM role created by Terraform wrapper"
 }
 
 variable "smart_iam_role_path" {
-  description = "IAM role path in smart mode"
+  description = "IAM role path in intelligent mode"
   type        = string
   default     = "/"
 }
 
 variable "smart_iam_role_policies" {
-  description = "Policies to attach to the IAM role in smart mode"
+  description = "Policies to attach to the IAM role in intelligent mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_iam_role_permissions_boundary" {
-  description = "Permissions boundary for the IAM role in smart mode"
+  description = "Permissions boundary for the IAM role in intelligent mode"
   type        = string
   default     = null
 }
 
 variable "smart_iam_role_tags" {
-  description = "Tags for the IAM role in smart mode"
+  description = "Tags for the IAM role in intelligent mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_instance_profile_tags" {
-  description = "Tags for the instance profile in smart mode"
+  description = "Tags for the instance profile in intelligent mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_iam_force_create_role" {
-  description = "Force creation of IAM role even if instance profile exists (for smart mode)"
+  description = "Force creation of IAM role even if instance profile exists (for intelligent mode)"
   type        = bool
   default     = false
 }

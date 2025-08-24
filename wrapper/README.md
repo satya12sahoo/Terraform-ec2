@@ -10,6 +10,7 @@ A dynamic, zero-hardcoded Terraform wrapper module for creating multiple EC2 ins
 - [Resource Mapping](#resource-mapping)
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [Naming & Tagging Configuration](#️-naming--tagging-configuration)
 - [Configuration](#configuration)
 - [Variables Reference](#variables-reference)
 - [Examples](#examples)
@@ -58,12 +59,12 @@ graph TD
     A[User Input: terraform.tfvars] --> B[Wrapper Module Processing]
     
     B --> C{Parse All Configurations}
-    C --> D[Global Settings]
-    C --> E[Instance Configurations]
-    C --> F[IAM Configuration]
-    C --> G[Security Group Configuration]
-    C --> H[Monitoring Configuration]
-    C --> I[Logging Configuration]
+    C --> D[Global Settings & Naming]
+    C --> E[Instance Configurations & Tags]
+    C --> F[IAM Configuration & Naming]
+    C --> G[Security Group Configuration & Naming]
+    C --> H[Monitoring Configuration & Naming]
+    C --> I[Logging Configuration & Naming]
     
     D --> J[Merge Global with Instance Configs]
     E --> J
@@ -73,8 +74,8 @@ graph TD
     I --> N{Enable Logging?}
     
     %% IAM Decision Logic
-    K --> O{Smart IAM Enabled?}
-    O -->|Yes| P[Smart IAM Logic]
+    K --> O{Intelligent IAM Enabled?}
+    O -->|Yes| P[Intelligent IAM Logic]
     O -->|No| Q{Existing Role Specified?}
     
     P --> R{Check Existing Role}
@@ -90,55 +91,63 @@ graph TD
     
     %% Security Group Logic
     L --> AA{Create Security Group?}
-    AA -->|Yes| BB[Create New Security Group]
+    AA -->|Yes| BB[Create New Security Group with Custom Naming]
     AA -->|No| CC[Use Existing Security Groups]
     
     %% Monitoring Logic
     M -->|Yes| DD[Monitoring Module Processing]
     M -->|No| EE[Skip Monitoring]
     
-    DD --> FF[Create CloudWatch Agent IAM Role]
-    DD --> GG[Create CloudWatch Dashboard]
-    DD --> HH[Create CloudWatch Alarms]
-    DD --> II[Create CloudWatch Log Groups]
-    DD --> JJ[Create SNS Topic & Subscriptions]
-    DD --> KK[Create Agent Configuration]
+    DD --> FF[Create CloudWatch Agent IAM Role with Naming]
+    DD --> GG[Create CloudWatch Dashboard with Naming]
+    DD --> HH[Create CloudWatch Alarms with Naming]
+    DD --> II[Create CloudWatch Log Groups with Naming]
+    DD --> JJ[Create SNS Topic & Subscriptions with Naming]
+    DD --> KK[Create Agent Configuration with Naming]
     
     %% Logging Logic
     N -->|Yes| LL[Logging Module Processing]
     N -->|No| MM[Skip Logging]
     
     LL --> NN{Create S3 Bucket?}
-    NN -->|Yes| OO[Create New S3 Bucket]
+    NN -->|Yes| OO[Create New S3 Bucket with Naming]
     NN -->|No| PP{Use Existing S3 Bucket?}
     PP -->|Yes| QQ[Use Existing S3 Bucket]
     PP -->|No| RR[No S3 Bucket]
     
-    LL --> SS[Create CloudWatch Log Groups]
-    LL --> TT[Create Logging IAM Role]
-    LL --> UU[Create Logging Agent Config]
-    LL --> VV[Create Log Alarms]
-    LL --> WW[Create Logging Dashboard]
+    LL --> SS[Create CloudWatch Log Groups with Naming]
+    LL --> TT[Create Logging IAM Role with Naming]
+    LL --> UU[Create Logging Agent Config with Naming]
+    LL --> VV[Create Log Alarms with Naming]
+    LL --> WW[Create Logging Dashboard with Naming]
     
-    %% Resource Creation
-    S --> XX[Final IAM Configuration]
+    %% Naming & Tagging Configuration
+    D --> NAMING[Apply Naming Conventions]
+    E --> TAGGING[Apply Tagging Strategy]
+    F --> IAM_NAMING[IAM Naming & Tags]
+    G --> SG_NAMING[Security Group Naming & Tags]
+    H --> MON_NAMING[Monitoring Naming & Tags]
+    I --> LOG_NAMING[Logging Naming & Tags]
+    
+    %% Resource Creation with Naming & Tagging
+    S --> XX[Final IAM Configuration with Naming & Tags]
     U --> XX
     V --> XX
     W --> XX
     Y --> XX
     Z --> XX
     
-    BB --> YY[Final Security Group Configuration]
+    BB --> YY[Final Security Group Configuration with Naming & Tags]
     CC --> YY
     
-    FF --> ZZ[Monitoring Resources Created]
+    FF --> ZZ[Monitoring Resources Created with Naming & Tags]
     GG --> ZZ
     HH --> ZZ
     II --> ZZ
     JJ --> ZZ
     KK --> ZZ
     
-    OO --> AAA[Logging Resources Created]
+    OO --> AAA[Logging Resources Created with Naming & Tags]
     QQ --> AAA
     RR --> AAA
     SS --> AAA
@@ -147,7 +156,7 @@ graph TD
     VV --> AAA
     WW --> AAA
     
-    J --> BBB[Base EC2 Module]
+    J --> BBB[Base EC2 Module with Naming & Tags]
     XX --> BBB
     YY --> BBB
     ZZ --> BBB
@@ -190,6 +199,12 @@ graph TD
     style HHH fill:#c8e6c9
     style III fill:#e1f5fe
     style OOO fill:#c8e6c9
+    style NAMING fill:#fff8e1
+    style TAGGING fill:#fff8e1
+    style IAM_NAMING fill:#fff8e1
+    style SG_NAMING fill:#fff8e1
+    style MON_NAMING fill:#fff8e1
+    style LOG_NAMING fill:#fff8e1
 ```
 
 ```mermaid
@@ -212,7 +227,7 @@ graph TD
     J --> M{Smart IAM Enabled?}
     K --> N{Create Security Group?}
     
-    M -->|Yes| O[Smart IAM Decision Tree]
+    M -->|Yes| O[Intelligent IAM Decision Tree]
     M -->|No| P{Existing Role?}
     N -->|Yes| Q[Security Group Creation Logic]
     N -->|No| R{Existing Security Groups Specified?}
@@ -859,6 +874,145 @@ terraform plan
 terraform apply
 ```
 
+## 🏷️ **Naming & Tagging Configuration**
+
+The wrapper module provides comprehensive naming and tagging configuration for all resources. All naming and tagging is configurable via `tfvars` files.
+
+### **📝 Naming Conventions**
+
+**Global Naming Settings:**
+```hcl
+global_settings = {
+  # Naming prefix for all resources
+  name_prefix = "my-project"
+  
+  # Use name prefix for resources
+  use_name_prefix = true
+  
+  # Default naming pattern
+  naming_pattern = "{environment}-{project}-{resource_type}"
+}
+```
+
+**Instance-Specific Naming:**
+```hcl
+instances = {
+  web-server = {
+    name = "web-server-01"
+    name_prefix = "web"
+    use_name_prefix = false
+    
+    # Resource-specific naming
+    iam_role_name = "web-server-role"
+    security_group_name = "web-server-sg"
+  }
+}
+```
+
+### **🏷️ Tagging Strategy**
+
+**Global Tags (Applied to All Resources):**
+```hcl
+global_settings = {
+  additional_tags = {
+    Environment = "production"
+    Project     = "my-project"
+    Owner       = "devops-team"
+    CostCenter  = "IT-001"
+    Compliance  = "SOC2"
+    Backup      = "daily"
+  }
+}
+```
+
+**Instance-Specific Tags:**
+```hcl
+instances = {
+  web-server = {
+    tags = {
+      Role        = "web-server"
+      Tier        = "frontend"
+      Backup      = "hourly"
+      Monitoring  = "high"
+      Compliance  = "PCI"
+    }
+  }
+}
+```
+
+**Resource-Specific Tags:**
+```hcl
+# Intelligent IAM Role Tags
+smart_iam_role_tags = {
+  Purpose     = "EC2 Instance Access"
+  Permissions = "S3, CloudWatch"
+  Rotation    = "90-days"
+}
+
+# Security Group Tags
+security_group_tags = {
+  Purpose     = "Web Server Access"
+  AllowedIPs  = "10.0.0.0/8"
+  Compliance  = "ISO27001"
+}
+
+# Monitoring Tags
+monitoring = {
+  cloudwatch_agent_role_tags = {
+    Purpose     = "CloudWatch Monitoring"
+    Metrics     = "CPU, Memory, Disk"
+    Retention   = "30-days"
+  }
+  
+  dashboard_tags = {
+    Purpose     = "Application Dashboard"
+    Team        = "SRE"
+    SLA         = "99.9%"
+  }
+}
+
+# Logging Tags
+logging = {
+  s3_logging_bucket_tags = {
+    Purpose     = "Centralized Logging"
+    Retention   = "7-years"
+    Encryption  = "AES256"
+    Compliance  = "SOX"
+  }
+  
+  logging_iam_role_tags = {
+    Purpose     = "Logging Agent Access"
+    Permissions = "S3, CloudWatch Logs"
+    Rotation    = "90-days"
+  }
+}
+```
+
+### **🎯 Naming & Tagging Features**
+
+**✅ Fully Configurable:**
+- All resource names configurable via `tfvars`
+- All tags configurable via `tfvars`
+- Support for name prefixes and patterns
+- Instance-specific overrides
+
+**✅ Hierarchical Tagging:**
+- Global tags applied to all resources
+- Instance-specific tags override global tags
+- Resource-specific tags for fine-grained control
+
+**✅ Compliance & Governance:**
+- Cost allocation tags
+- Compliance tags (SOC2, PCI, ISO27001, SOX)
+- Security tags
+- Operations tags
+
+**✅ Dynamic Naming:**
+- Environment-based naming
+- Project-based naming
+- Resource type-based naming
+- Instance-specific naming
+
 ## ⚙️ Configuration
 
 ### **Instance Configuration Structure**
@@ -985,14 +1139,14 @@ instance_profile_name = "my-new-instance-profile"
 |----------|------|----------|---------|-------------|
 | `iam_instance_profile` | `string` | ❌ No | `null` | Existing IAM instance profile name |
 | `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create instance profile for existing role |
-| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable smart IAM logic |
-| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for smart IAM |
-| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for smart IAM role |
-| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for smart IAM role |
-| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to smart IAM role |
-| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for smart IAM role |
-| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for smart IAM role |
-| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for smart IAM instance profile |
+| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable intelligent IAM logic |
+| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for intelligent IAM |
+| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for intelligent IAM role |
+| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for intelligent IAM role |
+| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to intelligent IAM role |
+| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for intelligent IAM role |
+| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for intelligent IAM role |
+| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for intelligent IAM instance profile |
 | `smart_iam_force_create_role` | `bool` | ❌ No | `false` | Force create IAM role even if profile exists |
 | `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
 | `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |
