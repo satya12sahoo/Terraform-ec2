@@ -26,6 +26,28 @@ This wrapper module provides a dynamic, loop-based approach to creating EC2 inst
 
 ## 🏗️ Architecture & Flow
 
+### 📖 How to Read These Flowcharts
+
+The flowcharts below show the complete end-to-end resource creation logic for the wrapper module. Here's how to interpret them:
+
+#### **🔍 Flowchart Elements:**
+- **🟦 Blue Boxes**: Input/Output points
+- **🟨 Yellow Boxes**: Decision points (Smart IAM logic)
+- **🟪 Purple Boxes**: Processing steps
+- **🟩 Green Boxes**: Resource creation
+- **🟧 Orange Boxes**: Final results
+- **🔴 Red Boxes**: Error conditions
+
+#### **📊 Decision Points:**
+- **Diamond shapes**: Conditional logic (Yes/No decisions)
+- **Rectangle shapes**: Processing steps
+- **Rounded rectangles**: Start/End points
+
+#### **🔄 Flow Direction:**
+- **Top to Bottom**: Main flow direction
+- **Left to Right**: Alternative paths
+- **Arrows**: Data/control flow
+
 ### System Flowchart
 
 ```mermaid
@@ -72,6 +94,349 @@ graph TD
     style X fill:#c8e6c9
     style L fill:#fff3e0
     style V fill:#f3e5f5
+```
+
+### Complete End-to-End Resource Creation Flowchart
+
+```mermaid
+graph TD
+    A[User Input: terraform.tfvars] --> B[Wrapper Module Initialization]
+    B --> C{Parse Input Variables}
+    
+    C --> D[Global Settings Processing]
+    C --> E[Instance Configurations Processing]
+    C --> F[IAM Configuration Analysis]
+    
+    D --> G[Apply Global Overrides]
+    E --> H[Validate Instance Configs]
+    F --> I{Determine IAM Strategy}
+    
+    G --> J[Merge Configurations]
+    H --> J
+    I --> K{Smart IAM Enabled?}
+    
+    K -->|Yes| L[Smart IAM Decision Tree]
+    K -->|No| M{Existing Role Specified?}
+    
+    %% Smart IAM Logic
+    L --> N[Data Source: Check Existing Role]
+    L --> O[Data Source: Check Existing Instance Profile]
+    
+    N --> P{Role Exists?}
+    O --> Q{Instance Profile Exists?}
+    
+    P -->|Yes| R[Use Existing Role]
+    P -->|No| S[Create New IAM Role]
+    Q -->|Yes| T[Use Existing Instance Profile]
+    Q -->|No| U[Create New Instance Profile]
+    
+    R --> V{Instance Profile Exists?}
+    S --> W[Create IAM Role Resource]
+    T --> X{Force Create Role?}
+    U --> Y[Create Instance Profile Resource]
+    
+    V -->|Yes| Z[Link to Existing Profile]
+    V -->|No| AA[Create Instance Profile for Existing Role]
+    W --> BB[Attach Policies to Role]
+    X -->|Yes| CC[Create New Role Anyway]
+    X -->|No| DD[Use Existing Profile Only]
+    Y --> EE[Link to Created Role]
+    
+    Z --> FF[Final Instance Profile Decision]
+    AA --> FF
+    BB --> EE
+    CC --> EE
+    DD --> FF
+    EE --> FF
+    
+    %% Traditional IAM Logic
+    M -->|Yes| GG[Data Source: Fetch Existing Role]
+    M -->|No| HH{Instance Profile Specified?}
+    
+    GG --> II[Create Instance Profile for Existing Role]
+    HH -->|Yes| JJ[Use Specified Instance Profile]
+    HH -->|No| KK[No IAM Resources Created]
+    
+    II --> LL[Instance Profile Resource Created]
+    JJ --> MM[Use Existing Instance Profile]
+    KK --> NN[No IAM Instance Profile]
+    
+    LL --> FF
+    MM --> FF
+    NN --> FF
+    
+    %% EC2 Instance Creation
+    FF --> OO[Final Instance Profile Name]
+    J --> PP[Process Instance Configurations]
+    
+    OO --> QQ[Base EC2 Module Call]
+    PP --> QQ
+    
+    QQ --> RR{Create EC2 Instances?}
+    
+    RR -->|Yes| SS[Create EC2 Instance Resources]
+    RR -->|No| TT[Skip EC2 Creation]
+    
+    SS --> UU[For Each Instance in Map]
+    UU --> VV[Create aws_instance Resource]
+    VV --> WW[Apply Instance Configuration]
+    WW --> XX[Attach IAM Instance Profile]
+    XX --> YY[Configure Block Devices]
+    YY --> ZZ[Set Security Groups]
+    ZZ --> AAA[Configure User Data]
+    AAA --> BBB[Apply Tags]
+    
+    TT --> CCC[No EC2 Resources Created]
+    
+    BBB --> DDD[Output Generation]
+    CCC --> DDD
+    
+    DDD --> EEE[Instance Information Outputs]
+    DDD --> FFF[IAM Resource Outputs]
+    DDD --> GGG[Configuration Summary Outputs]
+    
+    EEE --> HHH[Final Results]
+    FFF --> HHH
+    GGG --> HHH
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style HHH fill:#c8e6c9
+    style L fill:#fff3e0
+    style SS fill:#f3e5f5
+    style FF fill:#e8f5e8
+    style QQ fill:#fce4ec
+```
+
+### Detailed IAM Resource Creation Flowchart
+
+```mermaid
+graph TD
+    A[IAM Configuration Input] --> B{Smart IAM Enabled?}
+    
+    B -->|Yes| C[Smart IAM Flow]
+    B -->|No| D{Existing Role Specified?}
+    
+    %% Smart IAM Flow
+    C --> E[Data Source: aws_iam_role.smart_existing_role]
+    C --> F[Data Source: aws_iam_instance_profile.smart_existing_profile]
+    
+    E --> G{Role Found?}
+    F --> H{Instance Profile Found?}
+    
+    G -->|Yes| I[Use Existing Role]
+    G -->|No| J[Create New Role]
+    H -->|Yes| K[Use Existing Instance Profile]
+    H -->|No| L[Create New Instance Profile]
+    
+    I --> M{Instance Profile Exists?}
+    J --> N[Resource: aws_iam_role.smart_role]
+    K --> O{Force Create Role?}
+    L --> P[Resource: aws_iam_instance_profile.smart_profile]
+    
+    M -->|Yes| Q[Link to Existing Profile]
+    M -->|No| R[Create Instance Profile for Existing Role]
+    N --> S[Attach Policies: aws_iam_role_policy_attachment.smart_policies]
+    O -->|Yes| T[Create New Role Anyway]
+    O -->|No| U[Use Existing Profile Only]
+    P --> V[Link to Created Role]
+    
+    Q --> W[Final Instance Profile: smart_profile]
+    R --> W
+    S --> V
+    T --> V
+    U --> W
+    V --> W
+    
+    %% Traditional IAM Flow
+    D -->|Yes| X[Data Source: aws_iam_role.existing]
+    D -->|No| Y{Instance Profile Specified?}
+    
+    X --> Z[Resource: aws_iam_instance_profile.existing_role]
+    Y -->|Yes| AA[Use Specified Profile]
+    Y -->|No| BB[No IAM Resources]
+    
+    Z --> CC[Final Instance Profile: existing_role]
+    AA --> DD[Final Instance Profile: specified]
+    BB --> EE[Final Instance Profile: null]
+    
+    CC --> FF[Final Decision: coalesce]
+    DD --> FF
+    EE --> FF
+    W --> FF
+    
+    FF --> GG[Instance Profile for EC2]
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style GG fill:#c8e6c9
+    style C fill:#fff3e0
+    style N fill:#f3e5f5
+    style Z fill:#e8f5e8
+```
+
+### EC2 Instance Creation Flowchart
+
+```mermaid
+graph TD
+    A[Instance Configuration] --> B{Create Instances?}
+    
+    B -->|Yes| C[For Each Instance in Map]
+    B -->|No| D[Skip EC2 Creation]
+    
+    C --> E[Process Instance Config]
+    E --> F[Merge with Global Settings]
+    F --> G[Validate Configuration]
+    
+    G --> H{Configuration Valid?}
+    H -->|Yes| I[Create EC2 Instance Resource]
+    H -->|No| J[Configuration Error]
+    
+    I --> K[Resource: aws_instance.this]
+    K --> L[Apply Basic Configuration]
+    L --> M[Configure Network Settings]
+    M --> N[Configure Storage]
+    N --> O[Configure IAM]
+    O --> P[Configure Security]
+    P --> Q[Configure User Data]
+    Q --> R[Apply Tags]
+    
+    L --> L1[Set AMI, Instance Type, AZ]
+    M --> M1[Set Subnet, Security Groups, Public IP]
+    N --> N1[Configure Root Block Device]
+    N --> N2[Configure EBS Volumes]
+    O --> O1[Attach IAM Instance Profile]
+    P --> P1[Set Security Group Rules]
+    Q --> Q1[Process User Data Template]
+    R --> R1[Apply Instance Tags]
+    R --> R2[Apply Global Tags]
+    
+    D --> S[No EC2 Resources Created]
+    J --> T[Terraform Error]
+    
+    R --> U[Instance Created Successfully]
+    S --> V[Output: No Instances]
+    T --> W[Output: Error]
+    
+    U --> X[Generate Outputs]
+    X --> Y[Instance IDs]
+    X --> Z[IP Addresses]
+    X --> AA[Instance Details]
+    X --> BB[Configuration Summary]
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style U fill:#c8e6c9
+    style I fill:#f3e5f5
+    style K fill:#e8f5e8
+    style T fill:#ffebee
+```
+
+### User Data Template Processing Flowchart
+
+```mermaid
+graph TD
+    A[User Data Configuration] --> B{Enable User Data Template?}
+    
+    B -->|Yes| C{Template Path Specified?}
+    B -->|No| D[Use Raw User Data]
+    
+    C -->|Yes| E[Read Template File]
+    C -->|No| F[Use Default Template]
+    
+    E --> G{Template File Exists?}
+    F --> H[Use templates/user_data.sh]
+    D --> I[Use user_data Variable]
+    
+    G -->|Yes| J[Load Template Content]
+    G -->|No| K[Template File Error]
+    
+    H --> L[Load Default Template]
+    J --> M[Process Template Variables]
+    L --> M
+    I --> N[Use Raw User Data]
+    
+    M --> O{Template Variables Provided?}
+    O -->|Yes| P[Substitute Variables]
+    O -->|No| Q[Use Template as-is]
+    
+    P --> R[templatefile Function]
+    Q --> S[Raw Template Content]
+    N --> T[Base64 Encode]
+    
+    R --> U[Processed Template]
+    S --> U
+    U --> V[Base64 Encode]
+    
+    V --> W[user_data_base64]
+    T --> W
+    
+    W --> X[Attach to EC2 Instance]
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style X fill:#c8e6c9
+    style R fill:#fff3e0
+    style V fill:#f3e5f5
+    style K fill:#ffebee
+```
+
+### Resource Creation Decision Matrix
+
+```mermaid
+graph TD
+    A[Input Configuration] --> B{Smart IAM Enabled?}
+    
+    B -->|Yes| C[Smart IAM Decision Matrix]
+    B -->|No| D[Traditional IAM Decision Matrix]
+    
+    %% Smart IAM Matrix
+    C --> E{Existing Role?}
+    E -->|Yes| F{Existing Instance Profile?}
+    E -->|No| G{Existing Instance Profile?}
+    
+    F -->|Yes| H[Use Both Existing]
+    F -->|No| I[Use Existing Role + Create Profile]
+    G -->|Yes| J[Create Role + Use Existing Profile]
+    G -->|No| K[Create Both Role and Profile]
+    
+    H --> L[No Resources Created]
+    I --> M[Create: Instance Profile Only]
+    J --> N[Create: IAM Role Only]
+    K --> O[Create: Both Role and Profile]
+    
+    %% Traditional Matrix
+    D --> P{Existing Role Specified?}
+    P -->|Yes| Q[Create Instance Profile for Role]
+    P -->|No| R{Instance Profile Specified?}
+    
+    Q --> S[Create: Instance Profile Only]
+    R -->|Yes| T[Use Existing Instance Profile]
+    R -->|No| U[No IAM Resources]
+    
+    T --> V[No Resources Created]
+    U --> W[No IAM Resources]
+    
+    %% Final Resource Summary
+    L --> X[Final Resource Creation Summary]
+    M --> X
+    N --> X
+    O --> X
+    S --> X
+    V --> X
+    W --> X
+    
+    X --> Y[IAM Resources Created]
+    X --> Z[EC2 Resources Created]
+    X --> AA[Outputs Generated]
+    
+    %% Styling
+    style A fill:#e1f5fe
+    style X fill:#c8e6c9
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+    style H fill:#e8f5e8
+    style O fill:#fce4ec
 ```
 
 ### Resource Relationship Diagram
@@ -178,6 +543,29 @@ graph TB
 | `user_data_template_path` | `templatefile()` | `user_data_base64` | Dynamic scripts |
 | `user_data_template_vars` | Variable substitution | Processed template | Instance-specific data |
 | `enable_user_data_template` | Conditional logic | Base64 encoded | Boot configuration |
+
+### 6. **Complete Resource Creation Summary**
+
+| Input Scenario | IAM Resources Created | EC2 Resources Created | Final Instance Profile |
+|----------------|----------------------|----------------------|----------------------|
+| **Smart IAM: Role exists, Profile exists** | None | `aws_instance.this[*]` | Existing Profile |
+| **Smart IAM: Role exists, Profile missing** | `aws_iam_instance_profile.smart_profile` | `aws_instance.this[*]` | Created Profile |
+| **Smart IAM: Role missing, Profile exists** | `aws_iam_role.smart_role` + `aws_iam_role_policy_attachment.smart_policies` | `aws_instance.this[*]` | Existing Profile |
+| **Smart IAM: Both missing** | `aws_iam_role.smart_role` + `aws_iam_instance_profile.smart_profile` + `aws_iam_role_policy_attachment.smart_policies` | `aws_instance.this[*]` | Created Profile |
+| **Existing Role: Role specified** | `aws_iam_instance_profile.existing_role` | `aws_instance.this[*]` | Created Profile |
+| **Existing Role: Profile specified** | None | `aws_instance.this[*]` | Specified Profile |
+| **No IAM: No configuration** | None | `aws_instance.this[*]` | None |
+| **Disabled: create = false** | None | None | None |
+
+### 7. **Resource Creation Decision Logic**
+
+| Configuration | Smart IAM | Existing Role | Instance Profile | Result |
+|---------------|-----------|---------------|------------------|--------|
+| `enable_smart_iam = true` | ✅ | Any | Any | Smart decision based on existing resources |
+| `enable_smart_iam = false` + `existing_iam_role_name = "role"` | ❌ | ✅ | ❌ | Create instance profile for existing role |
+| `enable_smart_iam = false` + `iam_instance_profile = "profile"` | ❌ | ❌ | ✅ | Use existing instance profile |
+| `enable_smart_iam = false` + No IAM config | ❌ | ❌ | ❌ | No IAM resources created |
+| `create = false` | Any | Any | Any | No resources created |
 
 ## ✨ Features
 
