@@ -5,45 +5,263 @@ aws_region = "us-west-2"
 environment  = "production"
 project_name = "my-web-application"
 
-# AMI Configuration
-ami_id = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI in us-west-2
-
-# Network Configuration
-availability_zones = [
-  "us-west-2a",
-  "us-west-2b", 
-  "us-west-2c"
-]
-
-subnet_ids = [
-  "subnet-1234567890abcdef0",  # Public subnet in us-west-2a
-  "subnet-1234567890abcdef1",  # Public subnet in us-west-2b
-  "subnet-1234567890abcdef2"   # Private subnet in us-west-2c
-]
-
-security_group_ids = [
-  "sg-1234567890abcdef0"  # Security group with SSH, HTTP, HTTPS access
-]
-
-# SSH Configuration
-key_pair_name = "my-key-pair"
-
-# Optional Configuration
-vpc_id = "vpc-1234567890abcdef0"
-
-enable_monitoring = true
-enable_ebs_optimization = true
-enable_termination_protection = false
-enable_stop_protection = false
-
-create_iam_profiles = false
-iam_role_policies = {
-  # "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
-  # "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+# Instance configurations - everything is defined here
+instances = {
+  # Web Server 1
+  web_server_1 = {
+    name                        = "web-server-1"
+    ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    # User data template variables
+    user_data_template_vars = {
+      hostname = "web-server-1"
+      role     = "web"
+    }
+    
+    # Root block device
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-1-root"
+      }
+    }
+    
+    # Instance settings
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    # IAM configuration
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    # Metadata options
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    # Tags
+    tags = {
+      Name = "web-server-1"
+      Role = "web"
+      Tier = "frontend"
+    }
+  }
+  
+  # Web Server 2
+  web_server_2 = {
+    name                        = "web-server-2"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.small"
+    availability_zone          = "us-west-2b"
+    subnet_id                  = "subnet-1234567890abcdef1"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "web-server-2"
+      role     = "web"
+    }
+    
+    root_block_device = {
+      size       = 30
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-2-root"
+      }
+    }
+    
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "web-server-2"
+      Role = "web"
+      Tier = "frontend"
+    }
+  }
+  
+  # Application Server
+  app_server_1 = {
+    name                        = "app-server-1"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.medium"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "app-server-1"
+      role     = "application"
+    }
+    
+    root_block_device = {
+      size       = 50
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "app-server-1-root"
+      }
+    }
+    
+    # Additional EBS volumes
+    ebs_volumes = {
+      "/dev/sdf" = {
+        size       = 100
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "app-server-1-data"
+          MountPoint = "/mnt/data"
+        }
+      }
+    }
+    
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "app-server-1"
+      Role = "application"
+      Tier = "backend"
+    }
+  }
+  
+  # Database Server
+  db_server_1 = {
+    name                        = "db-server-1"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.large"
+    availability_zone          = "us-west-2c"
+    subnet_id                  = "subnet-1234567890abcdef2"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "db-server-1"
+      role     = "database"
+    }
+    
+    root_block_device = {
+      size       = 100
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "db-server-1-root"
+      }
+    }
+    
+    # Multiple EBS volumes for database
+    ebs_volumes = {
+      "/dev/sdf" = {
+        size       = 500
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "db-server-1-data"
+          MountPoint = "/mnt/database"
+        }
+      }
+      "/dev/sdg" = {
+        size       = 200
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "db-server-1-backup"
+          MountPoint = "/mnt/backup"
+        }
+      }
+    }
+    
+    disable_api_stop       = true
+    disable_api_termination = true
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "db-server-1"
+      Role = "database"
+      Tier = "data"
+    }
+  }
 }
 
-additional_tags = {
-  Owner       = "DevOps Team"
-  CostCenter  = "IT-001"
-  Backup      = "true"
+# Global settings (optional - can override instance-specific settings)
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  enable_termination_protection = false
+  enable_stop_protection = false
+  create_iam_profiles = false
+  iam_role_policies = {
+    # Global IAM policies that apply to all instances
+    # "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  }
+  additional_tags = {
+    Owner       = "DevOps Team"
+    CostCenter  = "IT-001"
+    Backup      = "true"
+  }
 }
+
+# User data template configuration
+user_data_template_path = "templates/user_data.sh"
+enable_user_data_template = true

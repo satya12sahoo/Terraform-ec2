@@ -13,76 +13,104 @@ variable "project_name" {
   type        = string
 }
 
-variable "ami_id" {
-  description = "AMI ID to use for all instances"
+variable "instances" {
+  description = "Map of instance configurations. Each key is the instance name, value contains the full configuration."
+  type = map(object({
+    # Basic instance configuration
+    name                        = string
+    ami                         = string
+    instance_type              = string
+    availability_zone          = string
+    subnet_id                  = string
+    vpc_security_group_ids     = list(string)
+    associate_public_ip_address = bool
+    key_name                   = string
+    
+    # User data configuration
+    user_data_template_vars = optional(map(string), {})
+    
+    # Block device configuration
+    root_block_device = object({
+      size       = number
+      type       = string
+      encrypted  = bool
+      throughput = optional(number, 125)
+      tags       = optional(map(string), {})
+    })
+    
+    # EBS volumes (optional)
+    ebs_volumes = optional(map(object({
+      size       = number
+      type       = string
+      encrypted  = bool
+      throughput = optional(number, 125)
+      tags       = optional(map(string), {})
+    })), {})
+    
+    # Instance settings
+    disable_api_stop       = optional(bool, false)
+    disable_api_termination = optional(bool, false)
+    ebs_optimized          = optional(bool, true)
+    monitoring             = optional(bool, true)
+    
+    # IAM configuration
+    create_iam_instance_profile = optional(bool, false)
+    iam_role_policies          = optional(map(string), {})
+    
+    # Metadata options
+    metadata_options = optional(object({
+      http_endpoint               = optional(string, "enabled")
+      http_tokens                 = optional(string, "required")
+      http_put_response_hop_limit = optional(number, 1)
+      instance_metadata_tags      = optional(string, "enabled")
+    }), {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    })
+    
+    # Tags
+    tags = map(string)
+  }))
+  
+  validation {
+    condition = length(var.instances) > 0
+    error_message = "At least one instance must be defined in the instances map."
+  }
+}
+
+# Optional global settings that can override instance-specific settings
+variable "global_settings" {
+  description = "Global settings that can override instance-specific configurations"
+  type = object({
+    enable_monitoring = optional(bool, true)
+    enable_ebs_optimization = optional(bool, true)
+    enable_termination_protection = optional(bool, false)
+    enable_stop_protection = optional(bool, false)
+    create_iam_profiles = optional(bool, false)
+    iam_role_policies = optional(map(string), {})
+    additional_tags = optional(map(string), {})
+  })
+  default = {
+    enable_monitoring = true
+    enable_ebs_optimization = true
+    enable_termination_protection = false
+    enable_stop_protection = false
+    create_iam_profiles = false
+    iam_role_policies = {}
+    additional_tags = {}
+  }
+}
+
+variable "user_data_template_path" {
+  description = "Path to the user data template file"
   type        = string
+  default     = "templates/user_data.sh"
 }
 
-variable "availability_zones" {
-  description = "List of availability zones to distribute instances across"
-  type        = list(string)
-}
-
-variable "subnet_ids" {
-  description = "List of subnet IDs where instances will be placed"
-  type        = list(string)
-}
-
-variable "security_group_ids" {
-  description = "List of security group IDs to attach to instances"
-  type        = list(string)
-}
-
-variable "key_pair_name" {
-  description = "Name of the EC2 key pair to use for SSH access"
-  type        = string
-}
-
-# Optional variables for additional customization
-variable "vpc_id" {
-  description = "VPC ID where resources will be created"
-  type        = string
-  default     = null
-}
-
-variable "enable_monitoring" {
-  description = "Enable detailed monitoring for instances"
+variable "enable_user_data_template" {
+  description = "Whether to use the user data template or provide raw user data"
   type        = bool
   default     = true
-}
-
-variable "enable_ebs_optimization" {
-  description = "Enable EBS optimization for instances"
-  type        = bool
-  default     = true
-}
-
-variable "enable_termination_protection" {
-  description = "Enable termination protection for instances"
-  type        = bool
-  default     = false
-}
-
-variable "enable_stop_protection" {
-  description = "Enable stop protection for instances"
-  type        = bool
-  default     = false
-}
-
-variable "create_iam_profiles" {
-  description = "Create IAM instance profiles for instances"
-  type        = bool
-  default     = false
-}
-
-variable "iam_role_policies" {
-  description = "Map of IAM policies to attach to instance roles"
-  type        = map(string)
-  default     = {}
-}
-
-variable "additional_tags" {
-  description = "Additional tags to apply to all instances"
-  type        = map(string)
-  default     = {}
 }

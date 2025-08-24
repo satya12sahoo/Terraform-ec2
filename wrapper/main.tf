@@ -3,169 +3,50 @@ provider "aws" {
 }
 
 locals {
-  # Define instance configurations with explicit values (no defaults)
-  instance_configs = {
-    web_server_1 = {
-      name                        = "web-server-1"
-      ami                         = var.ami_id
-      instance_type              = "t3.micro"
-      availability_zone          = var.availability_zones[0]
-      subnet_id                  = var.subnet_ids[0]
-      vpc_security_group_ids     = var.security_group_ids
-      associate_public_ip_address = true
-      key_name                   = var.key_pair_name
-      user_data                  = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-        hostname = "web-server-1"
-        role     = "web"
-      }))
-      root_block_device = {
-        size       = 20
-        type       = "gp3"
-        encrypted  = true
-        throughput = 125
-        tags = {
-          Name = "web-server-1-root"
+  # Merge global settings with instance-specific settings
+  merged_instances = {
+    for instance_name, instance_config in var.instances : instance_name => merge(instance_config, {
+      # Override with global settings if specified
+      disable_api_stop       = var.global_settings.enable_stop_protection != null ? var.global_settings.enable_stop_protection : instance_config.disable_api_stop
+      disable_api_termination = var.global_settings.enable_termination_protection != null ? var.global_settings.enable_termination_protection : instance_config.disable_api_termination
+      ebs_optimized          = var.global_settings.enable_ebs_optimization != null ? var.global_settings.enable_ebs_optimization : instance_config.ebs_optimized
+      monitoring             = var.global_settings.enable_monitoring != null ? var.global_settings.enable_monitoring : instance_config.monitoring
+      
+      # Merge IAM policies
+      iam_role_policies = merge(
+        var.global_settings.iam_role_policies,
+        instance_config.iam_role_policies
+      )
+      
+      # Merge additional tags
+      tags = merge(
+        var.global_settings.additional_tags,
+        instance_config.tags,
+        {
+          Environment = var.environment
+          Project     = var.project_name
+          ManagedBy   = "terraform"
         }
-      }
-      tags = {
-        Name     = "web-server-1"
-        Role     = "web"
-        Environment = var.environment
-        Project  = var.project_name
-      }
-    }
-    
-    web_server_2 = {
-      name                        = "web-server-2"
-      ami                         = var.ami_id
-      instance_type              = "t3.small"
-      availability_zone          = var.availability_zones[1]
-      subnet_id                  = var.subnet_ids[1]
-      vpc_security_group_ids     = var.security_group_ids
-      associate_public_ip_address = true
-      key_name                   = var.key_pair_name
-      user_data                  = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-        hostname = "web-server-2"
-        role     = "web"
-      }))
-      root_block_device = {
-        size       = 30
-        type       = "gp3"
-        encrypted  = true
-        throughput = 125
-        tags = {
-          Name = "web-server-2-root"
-        }
-      }
-      tags = {
-        Name     = "web-server-2"
-        Role     = "web"
-        Environment = var.environment
-        Project  = var.project_name
-      }
-    }
-    
-    app_server_1 = {
-      name                        = "app-server-1"
-      ami                         = var.ami_id
-      instance_type              = "t3.medium"
-      availability_zone          = var.availability_zones[0]
-      subnet_id                  = var.subnet_ids[0]
-      vpc_security_group_ids     = var.security_group_ids
-      associate_public_ip_address = false
-      key_name                   = var.key_pair_name
-      user_data                  = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-        hostname = "app-server-1"
-        role     = "application"
-      }))
-      root_block_device = {
-        size       = 50
-        type       = "gp3"
-        encrypted  = true
-        throughput = 125
-        tags = {
-          Name = "app-server-1-root"
-        }
-      }
-      ebs_volumes = {
-        "/dev/sdf" = {
-          size       = 100
-          type       = "gp3"
-          encrypted  = true
-          throughput = 125
-          tags = {
-            Name = "app-server-1-data"
-            MountPoint = "/mnt/data"
-          }
-        }
-      }
-      tags = {
-        Name     = "app-server-1"
-        Role     = "application"
-        Environment = var.environment
-        Project  = var.project_name
-      }
-    }
-    
-    db_server_1 = {
-      name                        = "db-server-1"
-      ami                         = var.ami_id
-      instance_type              = "t3.large"
-      availability_zone          = var.availability_zones[2]
-      subnet_id                  = var.subnet_ids[2]
-      vpc_security_group_ids     = var.security_group_ids
-      associate_public_ip_address = false
-      key_name                   = var.key_pair_name
-      user_data                  = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-        hostname = "db-server-1"
-        role     = "database"
-      }))
-      root_block_device = {
-        size       = 100
-        type       = "gp3"
-        encrypted  = true
-        throughput = 125
-        tags = {
-          Name = "db-server-1-root"
-        }
-      }
-      ebs_volumes = {
-        "/dev/sdf" = {
-          size       = 500
-          type       = "gp3"
-          encrypted  = true
-          throughput = 125
-          tags = {
-            Name = "db-server-1-data"
-            MountPoint = "/mnt/database"
-          }
-        }
-        "/dev/sdg" = {
-          size       = 200
-          type       = "gp3"
-          encrypted  = true
-          throughput = 125
-          tags = {
-            Name = "db-server-1-backup"
-            MountPoint = "/mnt/backup"
-          }
-        }
-      }
-      tags = {
-        Name     = "db-server-1"
-        Role     = "database"
-        Environment = var.environment
-        Project  = var.project_name
-      }
-    }
+      )
+      
+      # Generate user data based on template or use provided
+      user_data = var.enable_user_data_template ? (
+        length(instance_config.user_data_template_vars) > 0 ? 
+        base64encode(templatefile(var.user_data_template_path, instance_config.user_data_template_vars)) :
+        base64encode(templatefile(var.user_data_template_path, {
+          hostname = instance_config.name
+          role     = lookup(instance_config.user_data_template_vars, "role", "default")
+        }))
+      ) : null
+    })
   }
 }
 
-# Create EC2 instances using for_each loop with explicit configurations
+# Create EC2 instances using for_each loop with dynamic configurations
 module "ec2_instances" {
   source = "../"
   
-  for_each = local.instance_configs
+  for_each = local.merged_instances
   
   # Explicitly set all required variables (no defaults)
   create = true
@@ -179,33 +60,29 @@ module "ec2_instances" {
   vpc_security_group_ids     = each.value.vpc_security_group_ids
   associate_public_ip_address = each.value.associate_public_ip_address
   key_name                   = each.value.key_name
-  user_data_base64           = each.value.user_data
+  
+  # User data (only if template is enabled)
+  user_data_base64 = each.value.user_data
   
   # Block device configuration
   root_block_device = each.value.root_block_device
   
   # EBS volumes (if specified)
-  ebs_volumes = lookup(each.value, "ebs_volumes", {})
+  ebs_volumes = each.value.ebs_volumes
   
   # Tags
   tags = each.value.tags
   
   # Additional instance settings
-  disable_api_stop       = false
-  disable_api_termination = false
-  ebs_optimized          = true
+  disable_api_stop       = each.value.disable_api_stop
+  disable_api_termination = each.value.disable_api_termination
+  ebs_optimized          = each.value.ebs_optimized
+  monitoring             = each.value.monitoring
   
-  # IAM configuration (if needed)
-  create_iam_instance_profile = false
-  
-  # Monitoring
-  monitoring = true
+  # IAM configuration
+  create_iam_instance_profile = each.value.create_iam_instance_profile
+  iam_role_policies          = each.value.iam_role_policies
   
   # Metadata options
-  metadata_options = {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-    instance_metadata_tags      = "enabled"
-  }
+  metadata_options = each.value.metadata_options
 }

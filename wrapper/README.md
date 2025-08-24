@@ -1,25 +1,34 @@
-# EC2 Instance Wrapper
+# EC2 Instance Wrapper - Dynamic Configuration
 
-This wrapper provides a flexible way to create multiple EC2 instances using Terraform with explicit configurations and no default values. It uses a `for_each` loop to create instances with different configurations based on their roles.
+This wrapper provides a **completely dynamic** way to create multiple EC2 instances using Terraform. **All configurations come from tfvars** - there are no hardcoded values in the wrapper itself. It uses a `for_each` loop to create instances with configurations that are entirely driven by user input.
 
-## Features
+## 🎯 Key Features
 
-- **No Default Values**: All configurations are explicit, ensuring predictable deployments
-- **Loop-based Creation**: Uses `for_each` to create multiple instances with different configurations
-- **Role-based Configuration**: Each instance can have different configurations based on its role
-- **Override Support**: Easy to override configurations for specific instances
-- **Comprehensive Outputs**: Provides detailed information about created instances
+- **✅ Zero Hardcoded Values**: Everything is configurable from tfvars
+- **🔄 Dynamic Loop-based Creation**: Uses `for_each` with user-defined configurations
+- **⚙️ Flexible Configuration**: Each instance can have completely different settings
+- **🏷️ Role-based Templates**: User data templates support role-based configuration
+- **🌍 Global Settings**: Optional global settings that can override instance-specific configs
+- **📊 Comprehensive Outputs**: Detailed information about created instances
 
-## Instance Types
+## 📁 Structure
 
-The wrapper creates the following instances by default:
+```
+wrapper/
+├── main.tf                    # Dynamic configuration processing
+├── variables.tf               # Variable definitions (no defaults)
+├── outputs.tf                 # Comprehensive outputs
+├── versions.tf                # Terraform version requirements
+├── README.md                  # This documentation
+├── terraform.tfvars.example   # Example configuration
+├── templates/
+│   └── user_data.sh          # Role-based user data template
+└── examples/
+    ├── simple-usage.tf        # Basic usage example
+    └── advanced-dynamic.tf    # Advanced dynamic configuration
+```
 
-1. **web_server_1** (t3.micro) - Web server in AZ 1
-2. **web_server_2** (t3.small) - Web server in AZ 2  
-3. **app_server_1** (t3.medium) - Application server in AZ 1
-4. **db_server_1** (t3.large) - Database server in AZ 3
-
-## Usage
+## 🚀 Usage
 
 ### 1. Copy the example configuration
 
@@ -27,23 +36,54 @@ The wrapper creates the following instances by default:
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-### 2. Update the configuration
+### 2. Define your instance configurations
 
-Edit `terraform.tfvars` with your specific values:
+Edit `terraform.tfvars` with your specific instance configurations:
 
 ```hcl
+# Basic settings
 aws_region = "us-west-2"
 environment = "production"
 project_name = "my-application"
 
-# Network configuration
-availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
-subnet_ids = ["subnet-xxx", "subnet-yyy", "subnet-zzz"]
-security_group_ids = ["sg-xxx"]
-
-# AMI and key pair
-ami_id = "ami-0c02fb55956c7d316"
-key_pair_name = "my-key-pair"
+# Instance configurations - everything defined here
+instances = {
+  web_server_1 = {
+    name                        = "web-server-1"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    # User data template variables
+    user_data_template_vars = {
+      hostname = "web-server-1"
+      role     = "web"
+    }
+    
+    # Root block device
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-1-root"
+      }
+    }
+    
+    # Tags
+    tags = {
+      Name = "web-server-1"
+      Role = "web"
+    }
+  }
+  
+  # Add more instances as needed...
+}
 ```
 
 ### 3. Initialize and apply
@@ -54,92 +94,193 @@ terraform plan
 terraform apply
 ```
 
-## Customizing Instance Configurations
+## 📋 Configuration Options
 
-### Adding New Instances
+### Instance Configuration Structure
 
-To add new instances, modify the `instance_configs` local variable in `main.tf`:
+Each instance in the `instances` map supports the following configuration:
 
 ```hcl
-locals {
-  instance_configs = {
-    # ... existing instances ...
+instance_name = {
+  # Required fields
+  name                        = string
+  ami                         = string
+  instance_type              = string
+  availability_zone          = string
+  subnet_id                  = string
+  vpc_security_group_ids     = list(string)
+  associate_public_ip_address = bool
+  key_name                   = string
+  
+  # User data configuration
+  user_data_template_vars = map(string)  # Variables for template
+  
+  # Block device configuration
+  root_block_device = {
+    size       = number
+    type       = string
+    encrypted  = bool
+    throughput = optional(number, 125)
+    tags       = optional(map(string), {})
+  }
+  
+  # EBS volumes (optional)
+  ebs_volumes = {
+    "/dev/sdf" = {
+      size       = number
+      type       = string
+      encrypted  = bool
+      throughput = optional(number, 125)
+      tags       = optional(map(string), {})
+    }
+  }
+  
+  # Instance settings
+  disable_api_stop       = optional(bool, false)
+  disable_api_termination = optional(bool, false)
+  ebs_optimized          = optional(bool, true)
+  monitoring             = optional(bool, true)
+  
+  # IAM configuration
+  create_iam_instance_profile = optional(bool, false)
+  iam_role_policies          = optional(map(string), {})
+  
+  # Metadata options
+  metadata_options = {
+    http_endpoint               = optional(string, "enabled")
+    http_tokens                 = optional(string, "required")
+    http_put_response_hop_limit = optional(number, 1)
+    instance_metadata_tags      = optional(string, "enabled")
+  }
+  
+  # Tags
+  tags = map(string)
+}
+```
+
+### Global Settings
+
+Optional global settings that can override instance-specific configurations:
+
+```hcl
+global_settings = {
+  enable_monitoring = optional(bool, true)
+  enable_ebs_optimization = optional(bool, true)
+  enable_termination_protection = optional(bool, false)
+  enable_stop_protection = optional(bool, false)
+  create_iam_profiles = optional(bool, false)
+  iam_role_policies = optional(map(string), {})
+  additional_tags = optional(map(string), {})
+}
+```
+
+## 🔧 Advanced Usage Examples
+
+### Simple Configuration
+
+```hcl
+instances = {
+  web_server = {
+    name                        = "web-server"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-xxx"
+    vpc_security_group_ids     = ["sg-xxx"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
     
-    new_server = {
-      name                        = "new-server"
-      ami                         = var.ami_id
-      instance_type              = "t3.xlarge"
-      availability_zone          = var.availability_zones[0]
-      subnet_id                  = var.subnet_ids[0]
-      vpc_security_group_ids     = var.security_group_ids
-      associate_public_ip_address = false
-      key_name                   = var.key_pair_name
-      user_data                  = base64encode(templatefile("${path.module}/templates/user_data.sh", {
-        hostname = "new-server"
-        role     = "custom"
-      }))
-      root_block_device = {
-        size       = 100
+    user_data_template_vars = {
+      hostname = "web-server"
+      role     = "web"
+    }
+    
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+    }
+    
+    tags = {
+      Name = "web-server"
+      Role = "web"
+    }
+  }
+}
+```
+
+### Complex Configuration with EBS Volumes
+
+```hcl
+instances = {
+  database_server = {
+    name                        = "db-server"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.large"
+    availability_zone          = "us-west-2c"
+    subnet_id                  = "subnet-xxx"
+    vpc_security_group_ids     = ["sg-xxx"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "db-server"
+      role     = "database"
+    }
+    
+    root_block_device = {
+      size       = 100
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+    }
+    
+    ebs_volumes = {
+      "/dev/sdf" = {
+        size       = 500
         type       = "gp3"
         encrypted  = true
         throughput = 125
         tags = {
-          Name = "new-server-root"
+          Name = "db-data"
+          MountPoint = "/mnt/database"
         }
       }
-      tags = {
-        Name     = "new-server"
-        Role     = "custom"
-        Environment = var.environment
-        Project  = var.project_name
+      "/dev/sdg" = {
+        size       = 200
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "db-backup"
+          MountPoint = "/mnt/backup"
+        }
       }
     }
-  }
-}
-```
-
-### Modifying Existing Instances
-
-To modify existing instances, update their configuration in the `instance_configs` map:
-
-```hcl
-web_server_1 = {
-  name                        = "web-server-1"
-  ami                         = var.ami_id
-  instance_type              = "t3.small"  # Changed from t3.micro
-  # ... rest of configuration
-}
-```
-
-### Conditional Instance Creation
-
-You can conditionally create instances based on variables:
-
-```hcl
-locals {
-  base_configs = {
-    web_server_1 = {
-      # ... configuration
-    }
-    app_server_1 = {
-      # ... configuration  
+    
+    disable_api_stop       = true
+    disable_api_termination = true
+    
+    tags = {
+      Name = "db-server"
+      Role = "database"
     }
   }
-  
-  # Only create database server in production
-  db_configs = var.environment == "production" ? {
-    db_server_1 = {
-      # ... database configuration
-    }
-  } : {}
-  
-  instance_configs = merge(local.base_configs, local.db_configs)
 }
 ```
 
-## User Data Templates
+### Dynamic Configuration Generation
 
-The wrapper uses a template-based approach for user data. The template file `templates/user_data.sh` supports role-based configuration:
+See `examples/advanced-dynamic.tf` for an example that shows how to:
+- Use data sources to get AMIs, subnets, and security groups
+- Generate configurations based on environment
+- Scale instances dynamically
+- Use conditional logic for different environments
+
+## 🏷️ User Data Templates
+
+The wrapper supports role-based user data templates. The template file `templates/user_data.sh` supports:
 
 - **web**: Installs Apache, PHP, and configures web server
 - **application**: Installs Java, Tomcat, and configures application server
@@ -167,7 +308,7 @@ case "${role}" in
 esac
 ```
 
-## Outputs
+## 📊 Outputs
 
 The wrapper provides comprehensive outputs:
 
@@ -183,24 +324,27 @@ terraform output instances_by_role
 
 # Get total instance count
 terraform output total_instances
+
+# Get instance configurations
+terraform output instance_configurations
 ```
 
-## Security Considerations
+## 🔒 Security Considerations
 
-- All instances use encrypted EBS volumes
+- All instances use encrypted EBS volumes by default
 - IMDSv2 is enabled with required tokens
 - Security groups should be configured appropriately
 - Key pairs should be managed securely
 - Consider using IAM roles for instance permissions
 
-## Cost Optimization
+## 💰 Cost Optimization
 
 - Use appropriate instance types for workloads
 - Consider using Spot instances for non-critical workloads
 - Monitor and adjust EBS volumes as needed
 - Use appropriate storage types (gp3 for general purpose)
 
-## Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Common Issues
 
@@ -226,12 +370,17 @@ sudo tail -f /var/log/app/init.log
 sudo tail -f /var/log/cloud-init-output.log
 ```
 
-## Contributing
+## 🤝 Contributing
 
 To add new features or configurations:
 
-1. Update the `instance_configs` in `main.tf`
-2. Add corresponding variables in `variables.tf`
+1. Update the variable definitions in `variables.tf`
+2. Update the processing logic in `main.tf` if needed
 3. Update outputs in `outputs.tf` if needed
 4. Update the user data template if adding new roles
 5. Update this README with new features
+6. Add examples in the `examples/` directory
+
+## 📝 License
+
+This wrapper is provided as-is for educational and production use.

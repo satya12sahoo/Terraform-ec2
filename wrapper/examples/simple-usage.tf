@@ -1,5 +1,5 @@
-# Simple usage example
-# This demonstrates the basic usage of the wrapper
+# Simple usage example with dynamic configuration
+# This demonstrates the basic usage of the wrapper with tfvars-driven configuration
 
 # Use the wrapper module
 module "simple_instances" {
@@ -10,23 +10,118 @@ module "simple_instances" {
   environment = "development"
   project_name = "simple-app"
 
-  # AMI and network configuration
-  ami_id = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 in us-west-2
-  availability_zones = ["us-west-2a", "us-west-2b"]
-  subnet_ids = ["subnet-1234567890abcdef0", "subnet-1234567890abcdef1"]
-  security_group_ids = ["sg-1234567890abcdef0"]
-  key_pair_name = "my-key-pair"
-
-  # Optional configuration
-  enable_monitoring = true
-  enable_ebs_optimization = true
-  enable_termination_protection = false
-  enable_stop_protection = false
-
-  additional_tags = {
-    Owner = "DevOps Team"
-    CostCenter = "IT-001"
+  # Instance configurations - everything defined in tfvars
+  instances = {
+    web_server = {
+      name                        = "web-server"
+      ami                         = "ami-0c02fb55956c7d316"
+      instance_type              = "t3.micro"
+      availability_zone          = "us-west-2a"
+      subnet_id                  = "subnet-1234567890abcdef0"
+      vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+      associate_public_ip_address = true
+      key_name                   = "my-key-pair"
+      
+      user_data_template_vars = {
+        hostname = "web-server"
+        role     = "web"
+      }
+      
+      root_block_device = {
+        size       = 20
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "web-server-root"
+        }
+      }
+      
+      disable_api_stop       = false
+      disable_api_termination = false
+      ebs_optimized          = true
+      monitoring             = true
+      
+      create_iam_instance_profile = false
+      iam_role_policies          = {}
+      
+      metadata_options = {
+        http_endpoint               = "enabled"
+        http_tokens                 = "required"
+        http_put_response_hop_limit = 1
+        instance_metadata_tags      = "enabled"
+      }
+      
+      tags = {
+        Name = "web-server"
+        Role = "web"
+      }
+    }
+    
+    app_server = {
+      name                        = "app-server"
+      ami                         = "ami-0c02fb55956c7d316"
+      instance_type              = "t3.small"
+      availability_zone          = "us-west-2b"
+      subnet_id                  = "subnet-1234567890abcdef1"
+      vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+      associate_public_ip_address = false
+      key_name                   = "my-key-pair"
+      
+      user_data_template_vars = {
+        hostname = "app-server"
+        role     = "application"
+      }
+      
+      root_block_device = {
+        size       = 30
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "app-server-root"
+        }
+      }
+      
+      disable_api_stop       = false
+      disable_api_termination = false
+      ebs_optimized          = true
+      monitoring             = true
+      
+      create_iam_instance_profile = false
+      iam_role_policies          = {}
+      
+      metadata_options = {
+        http_endpoint               = "enabled"
+        http_tokens                 = "required"
+        http_put_response_hop_limit = 1
+        instance_metadata_tags      = "enabled"
+      }
+      
+      tags = {
+        Name = "app-server"
+        Role = "application"
+      }
+    }
   }
+
+  # Global settings
+  global_settings = {
+    enable_monitoring = true
+    enable_ebs_optimization = true
+    enable_termination_protection = false
+    enable_stop_protection = false
+    create_iam_profiles = false
+    iam_role_policies = {}
+    additional_tags = {
+      Owner = "DevOps Team"
+      CostCenter = "IT-001"
+    }
+  }
+
+  # User data template configuration
+  user_data_template_path = "templates/user_data.sh"
+  enable_user_data_template = true
 }
 
 # Output the results
