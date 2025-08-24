@@ -290,30 +290,57 @@ module "monitoring" {
   # CloudWatch Agent IAM Role
   create_cloudwatch_agent_role = var.monitoring.create_cloudwatch_agent_role
   cloudwatch_agent_role_name = var.monitoring.cloudwatch_agent_role_name
+  cloudwatch_agent_role_name_prefix = var.monitoring.cloudwatch_agent_role_name_prefix
+  cloudwatch_agent_role_use_name_prefix = var.monitoring.cloudwatch_agent_role_use_name_prefix
   cloudwatch_agent_role_path = var.monitoring.cloudwatch_agent_role_path
   cloudwatch_agent_role_description = var.monitoring.cloudwatch_agent_role_description
   cloudwatch_agent_role_tags = var.monitoring.cloudwatch_agent_role_tags
+  cloudwatch_agent_instance_profile_name = var.monitoring.cloudwatch_agent_instance_profile_name
+  cloudwatch_agent_instance_profile_name_prefix = var.monitoring.cloudwatch_agent_instance_profile_name_prefix
+  cloudwatch_agent_instance_profile_use_name_prefix = var.monitoring.cloudwatch_agent_instance_profile_use_name_prefix
+  cloudwatch_agent_instance_profile_path = var.monitoring.cloudwatch_agent_instance_profile_path
+  cloudwatch_agent_instance_profile_tags = var.monitoring.cloudwatch_agent_instance_profile_tags
   cloudwatch_agent_policies = var.monitoring.cloudwatch_agent_policies
   
   # CloudWatch Dashboard
   create_dashboard = var.monitoring.create_dashboard
   dashboard_name = var.monitoring.dashboard_name
+  dashboard_name_prefix = var.monitoring.dashboard_name_prefix
+  dashboard_use_name_prefix = var.monitoring.dashboard_use_name_prefix
+  dashboard_tags = var.monitoring.dashboard_tags
   
-  # CloudWatch Alarms
+  # CloudWatch Alarms - CPU
   create_cpu_alarms = var.monitoring.create_cpu_alarms
+  cpu_alarm_name = var.monitoring.cpu_alarm_name
+  cpu_alarm_name_prefix = var.monitoring.cpu_alarm_name_prefix
+  cpu_alarm_use_name_prefix = var.monitoring.cpu_alarm_use_name_prefix
   cpu_alarm_threshold = var.monitoring.cpu_alarm_threshold
   cpu_alarm_period = var.monitoring.cpu_alarm_period
   cpu_alarm_evaluation_periods = var.monitoring.cpu_alarm_evaluation_periods
+  cpu_alarm_description = var.monitoring.cpu_alarm_description
+  cpu_alarm_tags = var.monitoring.cpu_alarm_tags
   
+  # CloudWatch Alarms - Memory
   create_memory_alarms = var.monitoring.create_memory_alarms
+  memory_alarm_name = var.monitoring.memory_alarm_name
+  memory_alarm_name_prefix = var.monitoring.memory_alarm_name_prefix
+  memory_alarm_use_name_prefix = var.monitoring.memory_alarm_use_name_prefix
   memory_alarm_threshold = var.monitoring.memory_alarm_threshold
   memory_alarm_period = var.monitoring.memory_alarm_period
   memory_alarm_evaluation_periods = var.monitoring.memory_alarm_evaluation_periods
+  memory_alarm_description = var.monitoring.memory_alarm_description
+  memory_alarm_tags = var.monitoring.memory_alarm_tags
   
+  # CloudWatch Alarms - Disk
   create_disk_alarms = var.monitoring.create_disk_alarms
+  disk_alarm_name = var.monitoring.disk_alarm_name
+  disk_alarm_name_prefix = var.monitoring.disk_alarm_name_prefix
+  disk_alarm_use_name_prefix = var.monitoring.disk_alarm_use_name_prefix
   disk_alarm_threshold = var.monitoring.disk_alarm_threshold
   disk_alarm_period = var.monitoring.disk_alarm_period
   disk_alarm_evaluation_periods = var.monitoring.disk_alarm_evaluation_periods
+  disk_alarm_description = var.monitoring.disk_alarm_description
+  disk_alarm_tags = var.monitoring.disk_alarm_tags
   
   alarm_actions = var.monitoring.alarm_actions
   ok_actions = var.monitoring.ok_actions
@@ -326,9 +353,18 @@ module "monitoring" {
   # SNS Topic
   create_sns_topic = var.monitoring.create_sns_topic
   sns_topic_name = var.monitoring.sns_topic_name
+  sns_topic_name_prefix = var.monitoring.sns_topic_name_prefix
+  sns_topic_use_name_prefix = var.monitoring.sns_topic_use_name_prefix
   sns_topic_tags = var.monitoring.sns_topic_tags
+  sns_subscription_tags = var.monitoring.sns_subscription_tags
   sns_subscriptions = var.monitoring.sns_subscriptions
   
   # CloudWatch Agent Configuration
   create_cloudwatch_agent_config = var.monitoring.create_cloudwatch_agent_config
+  cloudwatch_agent_config_parameter_name = var.monitoring.cloudwatch_agent_config_parameter_name
+  cloudwatch_agent_config_parameter_name_prefix = var.monitoring.cloudwatch_agent_config_parameter_name_prefix
+  cloudwatch_agent_config_parameter_use_name_prefix = var.monitoring.cloudwatch_agent_config_parameter_use_name_prefix
+  cloudwatch_agent_config_parameter_tags = var.monitoring.cloudwatch_agent_config_parameter_tags
+  cloudwatch_agent_config_log_groups = var.monitoring.cloudwatch_agent_config_log_groups
+  cloudwatch_agent_config_metrics = var.monitoring.cloudwatch_agent_config_metrics
 }

@@ -1394,6 +1394,433 @@ monitoring = {
 }
 ```
 
+### **🏷️ Comprehensive Naming and Tagging Options:**
+
+The monitoring module provides extensive naming and tagging capabilities for all resources:
+
+#### **1. CloudWatch Agent IAM Role Naming & Tagging:**
+```hcl
+monitoring = {
+  # IAM Role Naming Options
+  cloudwatch_agent_role_name = "ec2-monitoring-agent-role"
+  cloudwatch_agent_role_name_prefix = "cw-agent-role-"
+  cloudwatch_agent_role_use_name_prefix = false  # Set to true to use prefix
+  cloudwatch_agent_role_path = "/monitoring/"
+  cloudwatch_agent_role_description = "Custom IAM role for CloudWatch agent"
+  
+  # IAM Role Tags
+  cloudwatch_agent_role_tags = {
+    Purpose = "CloudWatch Monitoring"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+  }
+  
+  # Instance Profile Naming Options
+  cloudwatch_agent_instance_profile_name = "ec2-monitoring-agent-profile"
+  cloudwatch_agent_instance_profile_name_prefix = "cw-agent-profile-"
+  cloudwatch_agent_instance_profile_use_name_prefix = false
+  cloudwatch_agent_instance_profile_path = "/monitoring/"
+  
+  # Instance Profile Tags
+  cloudwatch_agent_instance_profile_tags = {
+    Purpose = "CloudWatch Agent Profile"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    ProfileType = "CloudWatch Agent"
+  }
+}
+```
+
+#### **2. CloudWatch Dashboard Naming & Tagging:**
+```hcl
+monitoring = {
+  # Dashboard Naming Options
+  dashboard_name = "ec2-production-monitoring-dashboard"
+  dashboard_name_prefix = "ec2-dashboard-"
+  dashboard_use_name_prefix = false
+  
+  # Dashboard Tags
+  dashboard_tags = {
+    Purpose = "EC2 Monitoring Dashboard"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    DashboardType = "EC2 Metrics"
+    RefreshRate = "5min"
+    Retention = "30days"
+  }
+}
+```
+
+#### **3. CloudWatch Alarms Naming & Tagging:**
+```hcl
+monitoring = {
+  # CPU Alarms
+  create_cpu_alarms = true
+  cpu_alarm_name = "cpu-utilization-alarm"
+  cpu_alarm_name_prefix = "cpu-alarm-"
+  cpu_alarm_use_name_prefix = false
+  cpu_alarm_threshold = 75
+  cpu_alarm_description = "High CPU utilization detected on EC2 instance"
+  cpu_alarm_tags = {
+    Metric = "CPUUtilization"
+    Threshold = "75%"
+    Severity = "High"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    AlarmType = "CPU"
+    ResponseTime = "5min"
+    Escalation = "true"
+  }
+  
+  # Memory Alarms
+  create_memory_alarms = true
+  memory_alarm_name = "memory-utilization-alarm"
+  memory_alarm_name_prefix = "memory-alarm-"
+  memory_alarm_use_name_prefix = false
+  memory_alarm_threshold = 80
+  memory_alarm_description = "High memory utilization detected on EC2 instance"
+  memory_alarm_tags = {
+    Metric = "MemoryUtilization"
+    Threshold = "80%"
+    Severity = "Medium"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    AlarmType = "Memory"
+    ResponseTime = "5min"
+    Escalation = "true"
+  }
+  
+  # Disk Alarms
+  create_disk_alarms = true
+  disk_alarm_name = "disk-utilization-alarm"
+  disk_alarm_name_prefix = "disk-alarm-"
+  disk_alarm_use_name_prefix = false
+  disk_alarm_threshold = 85
+  disk_alarm_description = "High disk utilization detected on EC2 instance"
+  disk_alarm_tags = {
+    Metric = "DiskUtilization"
+    Threshold = "85%"
+    Severity = "High"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    AlarmType = "Disk"
+    ResponseTime = "5min"
+    Escalation = "true"
+  }
+  
+  # Global Alarm Tags
+  alarm_tags = {
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    NotificationChannel = "SNS"
+    ResponseTeam = "DevOps"
+    EscalationPolicy = "Standard"
+  }
+}
+```
+
+#### **4. CloudWatch Log Groups Naming & Tagging:**
+```hcl
+monitoring = {
+  create_log_groups = true
+  log_groups = {
+    system = {
+      name = "/aws/ec2/production/system"
+      retention_in_days = 30
+      tags = {
+        Purpose = "System Logs"
+        Environment = "production"
+        Team = "DevOps"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Internal"
+        SecurityLevel = "Standard"
+        LogType = "System"
+        Retention = "30days"
+        Encryption = "KMS"
+        AccessLevel = "ReadOnly"
+      }
+    }
+    security = {
+      name = "/aws/ec2/production/security"
+      retention_in_days = 90
+      tags = {
+        Purpose = "Security Logs"
+        Environment = "production"
+        Team = "DevOps"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Confidential"
+        SecurityLevel = "High"
+        LogType = "Security"
+        Retention = "90days"
+        Encryption = "KMS"
+        AccessLevel = "Restricted"
+        AuditRequired = "true"
+      }
+    }
+  }
+}
+```
+
+#### **5. SNS Topic Naming & Tagging:**
+```hcl
+monitoring = {
+  create_sns_topic = true
+  
+  # SNS Topic Naming Options
+  sns_topic_name = "ec2-production-alarm-notifications"
+  sns_topic_name_prefix = "ec2-alarms-"
+  sns_topic_use_name_prefix = false
+  
+  # SNS Topic Tags
+  sns_topic_tags = {
+    Purpose = "EC2 Alarm Notifications"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    NotificationType = "Alarms"
+    DeliveryMethod = "SNS"
+    Encryption = "KMS"
+    AccessLevel = "PublishSubscribe"
+  }
+  
+  # SNS Subscriptions with Tags
+  sns_subscriptions = {
+    email_all = {
+      protocol = "email"
+      endpoint = "devops@company.com"
+      tags = {
+        SubscriptionType = "Email"
+        Priority = "All"
+        Team = "DevOps"
+        Environment = "production"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Internal"
+        SecurityLevel = "Standard"
+        DeliveryMethod = "Email"
+        ResponseTime = "Immediate"
+      }
+    }
+    sms_critical = {
+      protocol = "sms"
+      endpoint = "+1234567890"
+      filter_policy = jsonencode({
+        severity = ["critical", "high"]
+      })
+      tags = {
+        SubscriptionType = "SMS"
+        Priority = "Critical"
+        Team = "DevOps"
+        Environment = "production"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Internal"
+        SecurityLevel = "Standard"
+        DeliveryMethod = "SMS"
+        ResponseTime = "Immediate"
+        Escalation = "true"
+      }
+    }
+  }
+}
+```
+
+#### **6. CloudWatch Agent Configuration Naming & Tagging:**
+```hcl
+monitoring = {
+  create_cloudwatch_agent_config = true
+  
+  # Agent Configuration Parameter Naming Options
+  cloudwatch_agent_config_parameter_name = "/cloudwatch-agent/ec2-production/config"
+  cloudwatch_agent_config_parameter_name_prefix = "/cw-agent-config-"
+  cloudwatch_agent_config_parameter_use_name_prefix = false
+  
+  # Agent Configuration Parameter Tags
+  cloudwatch_agent_config_parameter_tags = {
+    Purpose = "CloudWatch Agent Configuration"
+    Environment = "production"
+    Team = "DevOps"
+    CostCenter = "IT-001"
+    Compliance = "SOC2"
+    Backup = "true"
+    Monitoring = "true"
+    ManagedBy = "terraform"
+    Version = "1.0"
+    Owner = "DevOps Team"
+    Project = "EC2 Monitoring"
+    DataClassification = "Internal"
+    SecurityLevel = "Standard"
+    ParameterType = "Configuration"
+    Encryption = "KMS"
+    AccessLevel = "ReadOnly"
+    RefreshRate = "60s"
+  }
+  
+  # Custom Log Groups Configuration
+  cloudwatch_agent_config_log_groups = {
+    custom_app = {
+      file_path = "/var/log/custom-app.log"
+      log_group_name = "/aws/ec2/production/custom-app"
+      log_stream_name = "{instance_id}"
+      timezone = "UTC"
+      tags = {
+        Purpose = "Custom Application Logs"
+        Environment = "production"
+        Team = "DevOps"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Internal"
+        SecurityLevel = "Standard"
+        LogType = "CustomApplication"
+        Application = "CustomApp"
+        Retention = "30days"
+        Encryption = "KMS"
+        AccessLevel = "ReadOnly"
+      }
+    }
+  }
+  
+  # Custom Metrics Configuration
+  cloudwatch_agent_config_metrics = {
+    custom_cpu = {
+      measurement = ["cpu_usage_idle", "cpu_usage_iowait", "cpu_usage_user", "cpu_usage_system", "cpu_usage_nice"]
+      metrics_collection_interval = 60
+      resources = ["*"]
+      tags = {
+        Purpose = "Custom CPU Metrics"
+        Environment = "production"
+        Team = "DevOps"
+        CostCenter = "IT-001"
+        Compliance = "SOC2"
+        Backup = "true"
+        Monitoring = "true"
+        ManagedBy = "terraform"
+        Version = "1.0"
+        Owner = "DevOps Team"
+        Project = "EC2 Monitoring"
+        DataClassification = "Internal"
+        SecurityLevel = "Standard"
+        MetricType = "CPU"
+        CollectionInterval = "60s"
+        Retention = "15months"
+        Precision = "High"
+      }
+    }
+  }
+}
+```
+
 ### **📈 Monitoring Outputs:**
 
 - `monitoring_enabled` - Whether monitoring is enabled
@@ -1412,6 +1839,57 @@ monitoring = {
 4. **Instances configured with monitoring**
 5. **Real-time metrics and logs collection**
 6. **Alarms trigger notifications when thresholds exceeded**
+
+### **🏷️ Naming and Tagging Features:**
+
+The monitoring module provides comprehensive naming and tagging capabilities:
+
+#### **✅ Naming Options Available:**
+- **Exact Names**: Set specific names for all resources
+- **Name Prefixes**: Use prefixes for dynamic naming
+- **Prefix Toggle**: Switch between exact names and prefixes
+- **Custom Paths**: Configure IAM role and profile paths
+- **Descriptions**: Add detailed descriptions for IAM roles
+
+#### **✅ Tagging Categories Supported:**
+- **Environment Tags**: Production, staging, development
+- **Team Tags**: DevOps, Engineering, Operations
+- **Cost Tags**: CostCenter, Project, Budget
+- **Compliance Tags**: SOC2, HIPAA, PCI, GDPR
+- **Security Tags**: DataClassification, SecurityLevel, AccessLevel
+- **Operational Tags**: Backup, Monitoring, ManagedBy, Version
+- **Ownership Tags**: Owner, Contact, Department
+- **Technical Tags**: MetricType, AlarmType, LogType, Application
+- **Performance Tags**: ResponseTime, Escalation, Retention
+- **Infrastructure Tags**: Encryption, RefreshRate, CollectionInterval
+
+#### **✅ Resource-Specific Tagging:**
+- **IAM Roles & Profiles**: Purpose, ProfileType, Permissions
+- **CloudWatch Dashboards**: DashboardType, RefreshRate, Retention
+- **CloudWatch Alarms**: Metric, Threshold, Severity, AlarmType
+- **CloudWatch Log Groups**: LogType, Retention, Encryption, AccessLevel
+- **SNS Topics**: NotificationType, DeliveryMethod, Encryption
+- **SNS Subscriptions**: SubscriptionType, Priority, DeliveryMethod
+- **Agent Configuration**: ParameterType, RefreshRate, CollectionInterval
+
+#### **✅ Advanced Tagging Features:**
+- **Hierarchical Tags**: Global tags applied to all resources
+- **Resource-Specific Tags**: Individual tags for each resource type
+- **Subscription Tags**: Tags for each SNS subscription
+- **Custom Log Tags**: Tags for custom log group configurations
+- **Custom Metric Tags**: Tags for custom metric configurations
+- **Filter Policies**: SNS subscription filtering with tags
+- **Audit Tags**: AuditRequired, Compliance, DataClassification
+
+#### **✅ Tag Management Benefits:**
+- **Cost Allocation**: Track costs by team, project, environment
+- **Compliance**: Meet regulatory requirements with proper tagging
+- **Security**: Implement access controls based on tags
+- **Operations**: Automate responses based on tag values
+- **Governance**: Enforce tagging policies across resources
+- **Monitoring**: Create dashboards and alerts based on tags
+- **Backup**: Configure backup policies using tags
+- **Access Control**: Implement IAM policies based on tags
 
 ---
 

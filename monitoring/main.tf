@@ -5,7 +5,8 @@
 resource "aws_iam_role" "cloudwatch_agent" {
   count = var.create_cloudwatch_agent_role ? 1 : 0
   
-  name = var.cloudwatch_agent_role_name
+  name = var.cloudwatch_agent_role_use_name_prefix ? null : var.cloudwatch_agent_role_name
+  name_prefix = var.cloudwatch_agent_role_use_name_prefix ? var.cloudwatch_agent_role_name_prefix : null
   path = var.cloudwatch_agent_role_path
   description = var.cloudwatch_agent_role_description
   
@@ -25,7 +26,7 @@ resource "aws_iam_role" "cloudwatch_agent" {
   tags = merge(
     var.cloudwatch_agent_role_tags,
     {
-      Name        = var.cloudwatch_agent_role_name
+      Name        = var.cloudwatch_agent_role_use_name_prefix ? null : var.cloudwatch_agent_role_name
       Purpose     = "CloudWatch Agent"
       ManagedBy   = "terraform"
     }
@@ -36,14 +37,19 @@ resource "aws_iam_role" "cloudwatch_agent" {
 resource "aws_iam_instance_profile" "cloudwatch_agent" {
   count = var.create_cloudwatch_agent_role ? 1 : 0
   
-  name = "${var.cloudwatch_agent_role_name}-profile"
-  path = var.cloudwatch_agent_role_path
+  name = var.cloudwatch_agent_instance_profile_use_name_prefix ? null : (
+    var.cloudwatch_agent_instance_profile_name != null ? var.cloudwatch_agent_instance_profile_name : "${var.cloudwatch_agent_role_name}-profile"
+  )
+  name_prefix = var.cloudwatch_agent_instance_profile_use_name_prefix ? var.cloudwatch_agent_instance_profile_name_prefix : null
+  path = var.cloudwatch_agent_instance_profile_path
   role = aws_iam_role.cloudwatch_agent[0].name
   
   tags = merge(
-    var.cloudwatch_agent_role_tags,
+    var.cloudwatch_agent_instance_profile_tags,
     {
-      Name        = "${var.cloudwatch_agent_role_name}-profile"
+      Name        = var.cloudwatch_agent_instance_profile_use_name_prefix ? null : (
+        var.cloudwatch_agent_instance_profile_name != null ? var.cloudwatch_agent_instance_profile_name : "${var.cloudwatch_agent_role_name}-profile"
+      )
       Purpose     = "CloudWatch Agent Profile"
       ManagedBy   = "terraform"
     }
@@ -62,7 +68,8 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policies" {
 resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
   count = var.create_dashboard ? 1 : 0
   
-  dashboard_name = var.dashboard_name
+  dashboard_name = var.dashboard_use_name_prefix ? null : var.dashboard_name
+  dashboard_name_prefix = var.dashboard_use_name_prefix ? var.dashboard_name_prefix : null
   dashboard_body = jsonencode({
     widgets = [
       {
@@ -157,7 +164,10 @@ resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
 resource "aws_cloudwatch_metric_alarm" "cpu_utilization" {
   for_each = var.create_cpu_alarms ? { for id in var.instance_ids : id => id } : {}
   
-  alarm_name          = "cpu-utilization-${each.value}"
+  alarm_name = var.cpu_alarm_use_name_prefix ? null : (
+    var.cpu_alarm_name != null ? "${var.cpu_alarm_name}-${each.value}" : "cpu-utilization-${each.value}"
+  )
+  alarm_name_prefix = var.cpu_alarm_use_name_prefix ? var.cpu_alarm_name_prefix : null
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = var.cpu_alarm_evaluation_periods
   metric_name         = "CPUUtilization"
@@ -165,7 +175,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_utilization" {
   period              = var.cpu_alarm_period
   statistic           = "Average"
   threshold           = var.cpu_alarm_threshold
-  alarm_description   = "CPU utilization is too high"
+  alarm_description   = var.cpu_alarm_description
   alarm_actions       = var.alarm_actions
   ok_actions          = var.ok_actions
   
@@ -174,9 +184,12 @@ resource "aws_cloudwatch_metric_alarm" "cpu_utilization" {
   }
   
   tags = merge(
+    var.cpu_alarm_tags,
     var.alarm_tags,
     {
-      Name        = "cpu-utilization-${each.value}"
+      Name        = var.cpu_alarm_use_name_prefix ? null : (
+        var.cpu_alarm_name != null ? "${var.cpu_alarm_name}-${each.value}" : "cpu-utilization-${each.value}"
+      )
       InstanceId  = each.value
       Metric      = "CPUUtilization"
       ManagedBy   = "terraform"
@@ -187,7 +200,10 @@ resource "aws_cloudwatch_metric_alarm" "cpu_utilization" {
 resource "aws_cloudwatch_metric_alarm" "memory_utilization" {
   for_each = var.create_memory_alarms ? { for id in var.instance_ids : id => id } : {}
   
-  alarm_name          = "memory-utilization-${each.value}"
+  alarm_name = var.memory_alarm_use_name_prefix ? null : (
+    var.memory_alarm_name != null ? "${var.memory_alarm_name}-${each.value}" : "memory-utilization-${each.value}"
+  )
+  alarm_name_prefix = var.memory_alarm_use_name_prefix ? var.memory_alarm_name_prefix : null
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = var.memory_alarm_evaluation_periods
   metric_name         = "mem_used_percent"
@@ -195,7 +211,7 @@ resource "aws_cloudwatch_metric_alarm" "memory_utilization" {
   period              = var.memory_alarm_period
   statistic           = "Average"
   threshold           = var.memory_alarm_threshold
-  alarm_description   = "Memory utilization is too high"
+  alarm_description   = var.memory_alarm_description
   alarm_actions       = var.alarm_actions
   ok_actions          = var.ok_actions
   
@@ -204,9 +220,12 @@ resource "aws_cloudwatch_metric_alarm" "memory_utilization" {
   }
   
   tags = merge(
+    var.memory_alarm_tags,
     var.alarm_tags,
     {
-      Name        = "memory-utilization-${each.value}"
+      Name        = var.memory_alarm_use_name_prefix ? null : (
+        var.memory_alarm_name != null ? "${var.memory_alarm_name}-${each.value}" : "memory-utilization-${each.value}"
+      )
       InstanceId  = each.value
       Metric      = "MemoryUtilization"
       ManagedBy   = "terraform"
@@ -217,7 +236,10 @@ resource "aws_cloudwatch_metric_alarm" "memory_utilization" {
 resource "aws_cloudwatch_metric_alarm" "disk_utilization" {
   for_each = var.create_disk_alarms ? { for id in var.instance_ids : id => id } : {}
   
-  alarm_name          = "disk-utilization-${each.value}"
+  alarm_name = var.disk_alarm_use_name_prefix ? null : (
+    var.disk_alarm_name != null ? "${var.disk_alarm_name}-${each.value}" : "disk-utilization-${each.value}"
+  )
+  alarm_name_prefix = var.disk_alarm_use_name_prefix ? var.disk_alarm_name_prefix : null
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = var.disk_alarm_evaluation_periods
   metric_name         = "disk_used_percent"
@@ -225,7 +247,7 @@ resource "aws_cloudwatch_metric_alarm" "disk_utilization" {
   period              = var.disk_alarm_period
   statistic           = "Average"
   threshold           = var.disk_alarm_threshold
-  alarm_description   = "Disk utilization is too high"
+  alarm_description   = var.disk_alarm_description
   alarm_actions       = var.alarm_actions
   ok_actions          = var.ok_actions
   
@@ -234,9 +256,12 @@ resource "aws_cloudwatch_metric_alarm" "disk_utilization" {
   }
   
   tags = merge(
+    var.disk_alarm_tags,
     var.alarm_tags,
     {
-      Name        = "disk-utilization-${each.value}"
+      Name        = var.disk_alarm_use_name_prefix ? null : (
+        var.disk_alarm_name != null ? "${var.disk_alarm_name}-${each.value}" : "disk-utilization-${each.value}"
+      )
       InstanceId  = each.value
       Metric      = "DiskUtilization"
       ManagedBy   = "terraform"
@@ -266,11 +291,12 @@ resource "aws_cloudwatch_log_group" "application_logs" {
 resource "aws_sns_topic" "alarm_notifications" {
   count = var.create_sns_topic ? 1 : 0
   
-  name = var.sns_topic_name
+  name = var.sns_topic_use_name_prefix ? null : var.sns_topic_name
+  name_prefix = var.sns_topic_use_name_prefix ? var.sns_topic_name_prefix : null
   tags = merge(
     var.sns_topic_tags,
     {
-      Name        = var.sns_topic_name
+      Name        = var.sns_topic_use_name_prefix ? null : var.sns_topic_name
       Purpose     = "Alarm Notifications"
       ManagedBy   = "terraform"
     }
@@ -290,63 +316,80 @@ resource "aws_sns_topic_subscription" "alarm_notifications" {
 
 # CloudWatch Agent Configuration
 locals {
+  # Default log groups configuration
+  default_log_groups = {
+    system = {
+      file_path = "/var/log/messages"
+      log_group_name = "/aws/ec2/${var.environment}/system"
+      log_stream_name = "{instance_id}"
+      timezone = "UTC"
+    }
+    security = {
+      file_path = "/var/log/secure"
+      log_group_name = "/aws/ec2/${var.environment}/security"
+      log_stream_name = "{instance_id}"
+      timezone = "UTC"
+    }
+    application = {
+      file_path = "/var/log/application.log"
+      log_group_name = "/aws/ec2/${var.environment}/application"
+      log_stream_name = "{instance_id}"
+      timezone = "UTC"
+    }
+  }
+  
+  # Default metrics configuration
+  default_metrics = {
+    cpu = {
+      measurement = ["cpu_usage_idle", "cpu_usage_iowait", "cpu_usage_user", "cpu_usage_system"]
+      metrics_collection_interval = 60
+      resources = ["*"]
+    }
+    disk = {
+      measurement = ["used_percent"]
+      metrics_collection_interval = 60
+      resources = ["*"]
+    }
+    diskio = {
+      measurement = ["io_time"]
+      metrics_collection_interval = 60
+      resources = ["*"]
+    }
+    mem = {
+      measurement = ["mem_used_percent"]
+      metrics_collection_interval = 60
+    }
+    netstat = {
+      measurement = ["tcp_established", "tcp_time_wait"]
+      metrics_collection_interval = 60
+    }
+    swap = {
+      measurement = ["swap_used_percent"]
+      metrics_collection_interval = 60
+    }
+  }
+  
+  # Merge custom configurations with defaults
+  custom_log_groups = length(var.cloudwatch_agent_config_log_groups) > 0 ? var.cloudwatch_agent_config_log_groups : local.default_log_groups
+  custom_metrics = length(var.cloudwatch_agent_config_metrics) > 0 ? var.cloudwatch_agent_config_metrics : local.default_metrics
+  
   cloudwatch_agent_config = var.create_cloudwatch_agent_config ? {
     logs = {
       logs_collected = {
         files = {
           collect_list = [
-            {
-              file_path = "/var/log/messages"
-              log_group_name = "/aws/ec2/${var.environment}/system"
-              log_stream_name = "{instance_id}"
-              timezone = "UTC"
-            },
-            {
-              file_path = "/var/log/secure"
-              log_group_name = "/aws/ec2/${var.environment}/security"
-              log_stream_name = "{instance_id}"
-              timezone = "UTC"
-            },
-            {
-              file_path = "/var/log/application.log"
-              log_group_name = "/aws/ec2/${var.environment}/application"
-              log_stream_name = "{instance_id}"
-              timezone = "UTC"
+            for name, config in local.custom_log_groups : {
+              file_path = config.file_path
+              log_group_name = config.log_group_name
+              log_stream_name = config.log_stream_name
+              timezone = config.timezone
             }
           ]
         }
       }
     }
     metrics = {
-      metrics_collected = {
-        cpu = {
-          measurement = ["cpu_usage_idle", "cpu_usage_iowait", "cpu_usage_user", "cpu_usage_system"]
-          metrics_collection_interval = 60
-          resources = ["*"]
-        }
-        disk = {
-          measurement = ["used_percent"]
-          metrics_collection_interval = 60
-          resources = ["*"]
-        }
-        diskio = {
-          measurement = ["io_time"]
-          metrics_collection_interval = 60
-          resources = ["*"]
-        }
-        mem = {
-          measurement = ["mem_used_percent"]
-          metrics_collection_interval = 60
-        }
-        netstat = {
-          measurement = ["tcp_established", "tcp_time_wait"]
-          metrics_collection_interval = 60
-        }
-        swap = {
-          measurement = ["swap_used_percent"]
-          metrics_collection_interval = 60
-        }
-      }
+      metrics_collected = local.custom_metrics
     }
   } : null
 }
@@ -355,13 +398,17 @@ locals {
 resource "aws_ssm_parameter" "cloudwatch_agent_config" {
   count = var.create_cloudwatch_agent_config ? 1 : 0
   
-  name  = "/cloudwatch-agent/config"
+  name = var.cloudwatch_agent_config_parameter_use_name_prefix ? null : var.cloudwatch_agent_config_parameter_name
+  name_prefix = var.cloudwatch_agent_config_parameter_use_name_prefix ? var.cloudwatch_agent_config_parameter_name_prefix : null
   type  = "String"
   value = jsonencode(local.cloudwatch_agent_config)
   
-  tags = {
-    Name        = "/cloudwatch-agent/config"
-    Purpose     = "CloudWatch Agent Configuration"
-    ManagedBy   = "terraform"
-  }
+  tags = merge(
+    var.cloudwatch_agent_config_parameter_tags,
+    {
+      Name        = var.cloudwatch_agent_config_parameter_use_name_prefix ? null : var.cloudwatch_agent_config_parameter_name
+      Purpose     = "CloudWatch Agent Configuration"
+      ManagedBy   = "terraform"
+    }
+  )
 }

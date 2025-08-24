@@ -677,9 +677,16 @@ variable "monitoring" {
     # CloudWatch Agent IAM Role
     create_cloudwatch_agent_role = optional(bool, true)
     cloudwatch_agent_role_name = optional(string, "cloudwatch-agent-role")
+    cloudwatch_agent_role_name_prefix = optional(string, null)
+    cloudwatch_agent_role_use_name_prefix = optional(bool, false)
     cloudwatch_agent_role_path = optional(string, "/")
     cloudwatch_agent_role_description = optional(string, "IAM role for CloudWatch agent on EC2 instances")
     cloudwatch_agent_role_tags = optional(map(string), {})
+    cloudwatch_agent_instance_profile_name = optional(string, null)
+    cloudwatch_agent_instance_profile_name_prefix = optional(string, null)
+    cloudwatch_agent_instance_profile_use_name_prefix = optional(bool, false)
+    cloudwatch_agent_instance_profile_path = optional(string, "/")
+    cloudwatch_agent_instance_profile_tags = optional(map(string), {})
     cloudwatch_agent_policies = optional(map(string), {
       CloudWatchAgentServerPolicy = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
       CloudWatchLogsFullAccess    = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
@@ -688,22 +695,42 @@ variable "monitoring" {
     # CloudWatch Dashboard
     create_dashboard = optional(bool, true)
     dashboard_name = optional(string, "ec2-monitoring-dashboard")
+    dashboard_name_prefix = optional(string, null)
+    dashboard_use_name_prefix = optional(bool, false)
+    dashboard_tags = optional(map(string), {})
     
-    # CloudWatch Alarms
+    # CloudWatch Alarms - CPU
     create_cpu_alarms = optional(bool, true)
+    cpu_alarm_name = optional(string, null)
+    cpu_alarm_name_prefix = optional(string, null)
+    cpu_alarm_use_name_prefix = optional(bool, false)
     cpu_alarm_threshold = optional(number, 80)
     cpu_alarm_period = optional(number, 300)
     cpu_alarm_evaluation_periods = optional(number, 2)
+    cpu_alarm_description = optional(string, "CPU utilization is too high")
+    cpu_alarm_tags = optional(map(string), {})
     
+    # CloudWatch Alarms - Memory
     create_memory_alarms = optional(bool, true)
+    memory_alarm_name = optional(string, null)
+    memory_alarm_name_prefix = optional(string, null)
+    memory_alarm_use_name_prefix = optional(bool, false)
     memory_alarm_threshold = optional(number, 85)
     memory_alarm_period = optional(number, 300)
     memory_alarm_evaluation_periods = optional(number, 2)
+    memory_alarm_description = optional(string, "Memory utilization is too high")
+    memory_alarm_tags = optional(map(string), {})
     
+    # CloudWatch Alarms - Disk
     create_disk_alarms = optional(bool, true)
+    disk_alarm_name = optional(string, null)
+    disk_alarm_name_prefix = optional(string, null)
+    disk_alarm_use_name_prefix = optional(bool, false)
     disk_alarm_threshold = optional(number, 90)
     disk_alarm_period = optional(number, 300)
     disk_alarm_evaluation_periods = optional(number, 2)
+    disk_alarm_description = optional(string, "Disk utilization is too high")
+    disk_alarm_tags = optional(map(string), {})
     
     alarm_actions = optional(list(string), [])
     ok_actions = optional(list(string), [])
@@ -743,15 +770,36 @@ variable "monitoring" {
     # SNS Topic
     create_sns_topic = optional(bool, false)
     sns_topic_name = optional(string, "ec2-alarm-notifications")
+    sns_topic_name_prefix = optional(string, null)
+    sns_topic_use_name_prefix = optional(bool, false)
     sns_topic_tags = optional(map(string), {})
+    sns_subscription_tags = optional(map(string), {})
     sns_subscriptions = optional(map(object({
       protocol      = string
       endpoint      = string
       filter_policy = optional(string)
+      tags          = optional(map(string), {})
     })), {})
     
     # CloudWatch Agent Configuration
     create_cloudwatch_agent_config = optional(bool, true)
+    cloudwatch_agent_config_parameter_name = optional(string, "/cloudwatch-agent/config")
+    cloudwatch_agent_config_parameter_name_prefix = optional(string, null)
+    cloudwatch_agent_config_parameter_use_name_prefix = optional(bool, false)
+    cloudwatch_agent_config_parameter_tags = optional(map(string), {})
+    cloudwatch_agent_config_log_groups = optional(map(object({
+      file_path = string
+      log_group_name = string
+      log_stream_name = string
+      timezone = optional(string, "UTC")
+      tags = optional(map(string), {})
+    })), {})
+    cloudwatch_agent_config_metrics = optional(map(object({
+      measurement = list(string)
+      metrics_collection_interval = number
+      resources = optional(list(string), ["*"])
+      tags = optional(map(string), {})
+    })), {})
   })
   default = {}
 }
