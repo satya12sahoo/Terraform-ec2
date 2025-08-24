@@ -74,8 +74,8 @@ graph TD
     I --> N{Enable Logging?}
     
     %% IAM Decision Logic
-    K --> O{Dynamic IAM Enabled?}
-    O -->|Yes| P[Dynamic IAM Logic]
+    K --> O{Adaptive IAM Enabled?}
+    O -->|Yes| P[Adaptive IAM Logic]
     O -->|No| Q{Existing Role Specified?}
     
     P --> R{Check Existing Role}
@@ -227,7 +227,7 @@ graph TD
     J --> M{Smart IAM Enabled?}
     K --> N{Create Security Group?}
     
-    M -->|Yes| O[Dynamic IAM Decision Tree]
+    M -->|Yes| O[Adaptive IAM Decision Tree]
     M -->|No| P{Existing Role?}
     N -->|Yes| Q[Security Group Creation Logic]
     N -->|No| R{Existing Security Groups Specified?}
@@ -894,6 +894,19 @@ global_settings = {
 }
 ```
 
+**Adaptive IAM Naming (Auto-Detection Feature):**
+```hcl
+# Adaptive IAM automatically detects existing resources and creates missing ones
+enable_smart_iam = true
+smart_iam_role_name = "ec2-instance-role"  # Base name for role/profile
+
+# Naming patterns for different scenarios:
+# 1. Existing Role + No Profile → Creates: ec2-instance-role-profile
+# 2. No Role + Existing Profile → Creates: ec2-instance-role
+# 3. No Role + No Profile → Creates: ec2-instance-role + ec2-instance-role-profile
+# 4. Existing Role + Existing Profile → Uses both existing
+```
+
 **Instance-Specific Naming:**
 ```hcl
 instances = {
@@ -942,12 +955,15 @@ instances = {
 
 **Resource-Specific Tags:**
 ```hcl
-# Intelligent IAM Role Tags
+# Adaptive IAM Role Tags (Auto-Detection Feature)
 smart_iam_role_tags = {
   Purpose     = "EC2 Instance Access"
   Permissions = "S3, CloudWatch"
   Rotation    = "90-days"
+  AutoDetect  = "Role/Profile"
+  Scenario    = "Auto-Detected"  # Will show which scenario was used
 }
+```
 
 # Security Group Tags
 security_group_tags = {
@@ -1139,14 +1155,14 @@ instance_profile_name = "my-new-instance-profile"
 |----------|------|----------|---------|-------------|
 | `iam_instance_profile` | `string` | ❌ No | `null` | Existing IAM instance profile name |
 | `create_instance_profile_for_existing_role` | `bool` | ❌ No | `false` | Create instance profile for existing role |
-| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable dynamic IAM logic |
-| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for dynamic IAM |
-| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for dynamic IAM role |
-| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for dynamic IAM role |
-| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to dynamic IAM role |
-| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for dynamic IAM role |
-| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for dynamic IAM role |
-| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for dynamic IAM instance profile |
+| `enable_smart_iam` | `bool` | ❌ No | `false` | Enable adaptive IAM auto-detection |
+| `smart_iam_role_name` | `string` | ❌ No | `null` | Role name for adaptive IAM |
+| `smart_iam_role_description` | `string` | ❌ No | `null` | Description for adaptive IAM role |
+| `smart_iam_role_path` | `string` | ❌ No | `"/"` | Path for adaptive IAM role |
+| `smart_iam_role_policies` | `map(string)` | ❌ No | `{}` | Policies to attach to adaptive IAM role |
+| `smart_iam_role_permissions_boundary` | `string` | ❌ No | `null` | Permissions boundary for adaptive IAM role |
+| `smart_iam_role_tags` | `map(string)` | ❌ No | `{}` | Tags for adaptive IAM role |
+| `smart_instance_profile_tags` | `map(string)` | ❌ No | `{}` | Tags for adaptive IAM instance profile |
 | `smart_iam_force_create_role` | `bool` | ❌ No | `false` | Force create IAM role even if profile exists |
 | `existing_iam_role_name` | `string` | ❌ No | `null` | Existing IAM role name |
 | `instance_profile_name` | `string` | ❌ No | `null` | Instance profile name |

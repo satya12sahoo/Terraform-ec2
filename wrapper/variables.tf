@@ -504,9 +504,9 @@ variable "instance_profile_tags" {
   default     = {}
 }
 
-# Intelligent IAM feature variables (Toggle)
+# Adaptive IAM feature variables (Auto-Detection Toggle)
 variable "enable_smart_iam" {
-  description = "Enable intelligent IAM feature that automatically determines whether to create IAM role or just instance profile"
+  description = "Enable adaptive IAM feature that automatically determines whether to create IAM role or just instance profile"
   type        = bool
   default     = false
 }
@@ -518,43 +518,43 @@ variable "smart_iam_role_name" {
 }
 
 variable "smart_iam_role_description" {
-  description = "Description for the IAM role in intelligent mode"
+  description = "Description for the IAM role in adaptive mode"
   type        = string
-  default     = "Intelligent IAM role created by Terraform wrapper"
+  default     = "Adaptive IAM role created by Terraform wrapper"
 }
 
 variable "smart_iam_role_path" {
-  description = "IAM role path in intelligent mode"
+  description = "IAM role path in adaptive mode"
   type        = string
   default     = "/"
 }
 
 variable "smart_iam_role_policies" {
-  description = "Policies to attach to the IAM role in intelligent mode"
+  description = "Policies to attach to the IAM role in adaptive mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_iam_role_permissions_boundary" {
-  description = "Permissions boundary for the IAM role in intelligent mode"
+  description = "Permissions boundary for the IAM role in adaptive mode"
   type        = string
   default     = null
 }
 
 variable "smart_iam_role_tags" {
-  description = "Tags for the IAM role in intelligent mode"
+  description = "Tags for the IAM role in adaptive mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_instance_profile_tags" {
-  description = "Tags for the instance profile in intelligent mode"
+  description = "Tags for the instance profile in adaptive mode"
   type        = map(string)
   default     = {}
 }
 
 variable "smart_iam_force_create_role" {
-  description = "Force creation of IAM role even if instance profile exists (for intelligent mode)"
+  description = "Force creation of IAM role even if instance profile exists (for adaptive mode)"
   type        = bool
   default     = false
 }
