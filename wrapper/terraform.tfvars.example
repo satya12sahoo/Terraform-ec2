@@ -1,0 +1,402 @@
+# AWS Configuration
+aws_region = "us-west-2"
+
+# Project Configuration
+environment  = "production"
+project_name = "my-web-application"
+
+# Instance configurations - everything is defined here
+instances = {
+  # Web Server 1
+  web_server_1 = {
+    name                        = "web-server-1"
+    ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    # User data template variables
+    user_data_template_vars = {
+      hostname = "web-server-1"
+      role     = "web"
+    }
+    
+    # Root block device
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-1-root"
+      }
+    }
+    
+    # Instance settings
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    # IAM configuration
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    # Metadata options
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    # Tags
+    tags = {
+      Name = "web-server-1"
+      Role = "web"
+      Tier = "frontend"
+    }
+  }
+  
+  # Web Server 2
+  web_server_2 = {
+    name                        = "web-server-2"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.small"
+    availability_zone          = "us-west-2b"
+    subnet_id                  = "subnet-1234567890abcdef1"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "web-server-2"
+      role     = "web"
+    }
+    
+    root_block_device = {
+      size       = 30
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-2-root"
+      }
+    }
+    
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "web-server-2"
+      Role = "web"
+      Tier = "frontend"
+    }
+  }
+  
+  # Application Server
+  app_server_1 = {
+    name                        = "app-server-1"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.medium"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "app-server-1"
+      role     = "application"
+    }
+    
+    root_block_device = {
+      size       = 50
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "app-server-1-root"
+      }
+    }
+    
+    # Additional EBS volumes
+    ebs_volumes = {
+      "/dev/sdf" = {
+        size       = 100
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "app-server-1-data"
+          MountPoint = "/mnt/data"
+        }
+      }
+    }
+    
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "app-server-1"
+      Role = "application"
+      Tier = "backend"
+    }
+  }
+  
+  # Database Server
+  db_server_1 = {
+    name                        = "db-server-1"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.large"
+    availability_zone          = "us-west-2c"
+    subnet_id                  = "subnet-1234567890abcdef2"
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    associate_public_ip_address = false
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "db-server-1"
+      role     = "database"
+    }
+    
+    root_block_device = {
+      size       = 100
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "db-server-1-root"
+      }
+    }
+    
+    # Multiple EBS volumes for database
+    ebs_volumes = {
+      "/dev/sdf" = {
+        size       = 500
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "db-server-1-data"
+          MountPoint = "/mnt/database"
+        }
+      }
+      "/dev/sdg" = {
+        size       = 200
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "db-server-1-backup"
+          MountPoint = "/mnt/backup"
+        }
+      }
+    }
+    
+    disable_api_stop       = true
+    disable_api_termination = true
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "db-server-1"
+      Role = "database"
+      Tier = "data"
+    }
+  }
+}
+
+# Global settings (optional - can override instance-specific settings)
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  enable_termination_protection = false
+  enable_stop_protection = false
+  create_iam_profiles = false
+  iam_role_policies = {
+    # Global IAM policies that apply to all instances
+    # "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  }
+  additional_tags = {
+    Owner       = "DevOps Team"
+    CostCenter  = "IT-001"
+    Backup      = "true"
+  }
+}
+
+# User data template configuration
+user_data_template_path = "templates/user_data.sh"
+enable_user_data_template = true
+
+# Additional global configuration options from base module
+create = true
+region = "us-west-2"
+
+# AMI configuration
+ami_ssm_parameter = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+ignore_ami_changes = false
+
+# CPU options (optional)
+cpu_options = {
+  core_count       = 2
+  threads_per_core = 1
+}
+
+# CPU credits for T instances
+cpu_credits = "unlimited"
+
+# Instance settings
+enclave_options_enabled = false
+enable_primary_ipv6 = false
+get_password_data = false
+hibernation = false
+
+# Network configuration
+ipv6_address_count = null
+ipv6_addresses = null
+private_ip = null
+secondary_private_ips = null
+source_dest_check = true
+
+# Instance behavior
+instance_initiated_shutdown_behavior = "stop"
+tenancy = "default"
+
+# User data configuration
+user_data = null
+user_data_replace_on_change = false
+
+# Volume configuration
+enable_volume_tags = true
+volume_tags = {}
+
+# Timeouts
+timeouts = {
+  create = "10m"
+  update = "10m"
+  delete = "10m"
+}
+
+# Spot instance configuration (disabled by default)
+create_spot_instance = false
+spot_instance_interruption_behavior = null
+spot_launch_group = null
+spot_price = null
+spot_type = null
+spot_wait_for_fulfillment = null
+spot_valid_from = null
+spot_valid_until = null
+
+# IAM configuration
+iam_role_name = null
+iam_role_use_name_prefix = true
+iam_role_path = null
+iam_role_description = null
+iam_role_permissions_boundary = null
+iam_role_tags = {}
+iam_instance_profile = null
+
+# IAM Instance Profile for existing role configuration
+create_instance_profile_for_existing_role = true
+existing_iam_role_name = "my-existing-ec2-role"  # Name of your existing IAM role
+instance_profile_name = "my-ec2-instance-profile"  # Optional: custom name for instance profile
+instance_profile_use_name_prefix = true
+instance_profile_path = "/"
+instance_profile_tags = {
+  Purpose = "EC2 Instance Profile"
+  CreatedBy = "Terraform"
+}
+
+# Smart IAM feature configuration (Toggle)
+enable_smart_iam = true
+smart_iam_role_name = "my-smart-ec2-role"  # Name for role/instance profile
+smart_iam_role_description = "Smart IAM role for EC2 instances"
+smart_iam_role_path = "/"
+smart_iam_role_policies = {
+  "S3ReadOnly" = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  "CloudWatchAgent" = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+smart_iam_role_permissions_boundary = null
+smart_iam_role_tags = {
+  Purpose = "Smart IAM Role"
+  CreatedBy = "Terraform"
+  Feature = "smart-iam"
+}
+smart_instance_profile_tags = {
+  Purpose = "Smart Instance Profile"
+  CreatedBy = "Terraform"
+  Feature = "smart-iam"
+}
+smart_iam_force_create_role = false  # Set to true to force role creation even if instance profile exists
+
+# Security group configuration (disabled by default - use existing SGs)
+create_security_group = false
+security_group_name = null
+security_group_use_name_prefix = true
+security_group_description = null
+security_group_vpc_id = null
+security_group_tags = {}
+security_group_egress_rules = {
+  ipv4_default = {
+    cidr_ipv4   = "0.0.0.0/0"
+    description = "Allow all IPv4 traffic"
+    ip_protocol = "-1"
+  }
+  ipv6_default = {
+    cidr_ipv6   = "::/0"
+    description = "Allow all IPv6 traffic"
+    ip_protocol = "-1"
+  }
+}
+security_group_ingress_rules = null
+
+# Elastic IP configuration (disabled by default)
+create_eip = false
+eip_domain = "vpc"
+eip_tags = {}
+
+# Additional tags for instances
+instance_tags = {
+  ManagedBy = "terraform"
+}
+
+# Required variable
+putin_khuylo = true
