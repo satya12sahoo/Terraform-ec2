@@ -104,15 +104,15 @@ variable "global_settings" {
 }
 
 variable "user_data_template_path" {
-  description = "Path to the user data template file"
+  description = "Path to the user data template file. Set to null for fresh EC2 instances without any user data."
   type        = string
-  default     = "templates/user_data.sh"
+  default     = null
 }
 
 variable "enable_user_data_template" {
-  description = "Whether to use the user data template or provide raw user data"
+  description = "Whether to use the user data template or provide raw user data. Set to false for fresh EC2 instances without any user data."
   type        = bool
-  default     = true
+  default     = false
 }
 
 # Additional variables from base module that can be configured globally
@@ -687,6 +687,12 @@ variable "assume_role_policy_version" {
   description = "Version for IAM assume role policy"
   type        = string
   default     = "2012-10-17"
+}
+
+variable "create_fresh_ec2" {
+  description = "Create fresh EC2 instances without any user data or templates. Overrides enable_user_data_template and user_data_template_path."
+  type        = bool
+  default     = true
 }
 
 variable "default_role_name" {

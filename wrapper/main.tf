@@ -150,15 +150,19 @@ locals {
         }
       )
       
-      # Generate user data based on template or use provided
-      user_data = var.enable_user_data_template ? (
-        length(instance_config.user_data_template_vars) > 0 ? 
-        base64encode(templatefile(var.user_data_template_path, instance_config.user_data_template_vars)) :
-        base64encode(templatefile(var.user_data_template_path, {
-          hostname = instance_config.name
-          role     = lookup(instance_config.user_data_template_vars, "role", var.default_role_name)
-        }))
-      ) : null
+      # Generate user data based on configuration
+      user_data = var.create_fresh_ec2 ? null : (
+        var.enable_user_data_template && var.user_data_template_path != null ? (
+          length(instance_config.user_data_template_vars) > 0 ? 
+          base64encode(templatefile(var.user_data_template_path, instance_config.user_data_template_vars)) :
+          base64encode(templatefile(var.user_data_template_path, {
+            hostname = instance_config.name
+            role     = lookup(instance_config.user_data_template_vars, "role", var.default_role_name)
+          }))
+        ) : (
+          var.user_data != null ? var.user_data : null
+        )
+      )
     })
   }
 }

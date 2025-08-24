@@ -11,6 +11,7 @@ A dynamic Terraform wrapper module for creating multiple EC2 instances with comp
 - **Comprehensive configuration** - All base module variables exposed via `tfvars`
 - **Monitoring & Logging integration** - Optional CloudWatch monitoring and centralized logging
 - **Complete user input control** - All system tags, service principals, and defaults configurable
+- **Fresh EC2 support** - Create instances without any user data or templates
 
 ## 🎯 Zero Hardcoded Values Approach
 
@@ -36,7 +37,9 @@ assume_role_policy_version = "2012-10-17"       # Default: "2012-10-17"
 ```hcl
 # Default values for user data templates
 default_role_name = "default"                   # Default: "default"
-user_data_template_path = "templates/user_data.sh"  # Default: "templates/user_data.sh"
+user_data_template_path = "templates/user_data.sh"  # Default: null (fresh EC2)
+enable_user_data_template = false               # Default: false (fresh EC2)
+create_fresh_ec2 = true                         # Default: true (fresh EC2)
 ```
 
 #### **🌍 Environment & Project:**
@@ -53,6 +56,67 @@ project_name = "my-project"
 - **Compliance support** - Custom tags for compliance requirements
 - **Integration ready** - Works with any existing tagging strategy
 - **Future-proof** - Easy to adapt to changing requirements
+
+## 🆕 Fresh EC2 Support
+
+This wrapper supports creating **fresh EC2 instances** without any user data or templates, perfect for manual configuration or testing.
+
+### **✅ Fresh EC2 Features:**
+
+#### **🚀 Default Behavior:**
+```hcl
+# By default, creates fresh EC2 instances
+create_fresh_ec2 = true                    # Default: true
+enable_user_data_template = false          # Default: false
+user_data_template_path = null             # Default: null
+```
+
+#### **🔧 Fresh EC2 Configuration:**
+```hcl
+# Fresh EC2 with minimal configuration
+aws_region = "us-west-2"
+environment = "dev"
+project_name = "test-project"
+
+# Fresh EC2 instances (no user data)
+instances = {
+  test-instance = {
+    name = "test-instance"
+    ami = "ami-12345678"
+    instance_type = "t3.micro"
+    subnet_id = "subnet-12345678"
+    vpc_security_group_ids = ["sg-12345678"]
+    associate_public_ip_address = true
+    key_name = "test-key"
+    
+    root_block_device = {
+      size = 20
+      type = "gp3"
+      encrypted = true
+    }
+    
+    tags = {
+      Name = "test-instance"
+      Purpose = "testing"
+    }
+  }
+}
+```
+
+#### **📝 User Data Options:**
+```hcl
+# Option 1: Fresh EC2 (no user data)
+create_fresh_ec2 = true
+
+# Option 2: Custom user data
+create_fresh_ec2 = false
+user_data = "#!/bin/bash\necho 'Hello World'"
+
+# Option 3: User data template
+create_fresh_ec2 = false
+enable_user_data_template = true
+user_data_template_path = "templates/user_data.sh"
+```
 
 ## 🏗️ System Architecture Flowchart
 
@@ -161,9 +225,11 @@ graph TD
     UU --> FFF[Create Logging Dashboard<br/>logging.logging_dashboard_name]
     
     %% User Data Processing
-    P --> GGG{enable_user_data_template?}
-    GGG -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
-    GGG -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
+    P --> GGG{create_fresh_ec2?}
+    GGG -->|Yes| III[Fresh EC2 - No User Data]
+    GGG -->|No| GGG1{enable_user_data_template?}
+    GGG1 -->|Yes| HHH[Process Template<br/>user_data_template_path with user_data_template_vars]
+    GGG1 -->|No| III[Use Raw User Data<br/>user_data or user_data_base64]
     
     %% Spot Instance Processing
     Q --> JJJ{create_spot_instance?}
@@ -243,6 +309,11 @@ graph TD
 aws_region = "us-west-2"
 environment = "production"
 project_name = "my-project"
+
+# Fresh EC2 Configuration (default behavior)
+create_fresh_ec2 = true                    # Creates instances without user data
+enable_user_data_template = false          # No user data templates
+user_data_template_path = null             # No template path
 
 # System Tags Configuration (Optional - uses defaults if not specified)
 managed_by_tag = "terraform"
@@ -464,8 +535,9 @@ logging = {
 
 | Variable | Type | Required | Default | Description |
 |----------|------|----------|---------|-------------|
-| `enable_user_data_template` | `bool` | ❌ No | `true` | Enable user data template |
-| `user_data_template_path` | `string` | ❌ No | `"templates/user_data.sh"` | Path to user data template |
+| `create_fresh_ec2` | `bool` | ❌ No | `true` | Create fresh EC2 instances without any user data |
+| `enable_user_data_template` | `bool` | ❌ No | `false` | Enable user data template |
+| `user_data_template_path` | `string` | ❌ No | `null` | Path to user data template |
 | `user_data` | `string` | ❌ No | `null` | Raw user data string |
 | `user_data_base64` | `string` | ❌ No | `null` | Base64 encoded user data |
 | `user_data_replace_on_change` | `bool` | ❌ No | `null` | Replace user data on changes |
@@ -552,6 +624,7 @@ logging = {
 See the `examples/` directory for complete configuration examples:
 
 ### **🎯 Key Examples:**
+- `fresh-ec2.tfvars` - **Fresh EC2 instances without user data (default behavior)**
 - `basic.tfvars` - Basic instance creation
 - `custom-system-tags.tfvars` - **Complete customization of all system tags and configuration**
 - `with-monitoring.tfvars` - With monitoring enabled
