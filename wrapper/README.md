@@ -6,6 +6,7 @@ A dynamic, zero-hardcoded Terraform wrapper module for creating multiple EC2 ins
 
 - [Overview](#overview)
 - [Architecture & Flow](#architecture--flow)
+- [Loop Functionality & Defaults](#loop-functionality--defaults)
 - [Resource Mapping](#resource-mapping)
 - [Features](#features)
 - [Quick Start](#quick-start)
@@ -19,7 +20,8 @@ A dynamic, zero-hardcoded Terraform wrapper module for creating multiple EC2 ins
 
 This wrapper module provides a dynamic, loop-based approach to creating EC2 instances with:
 - **Zero hardcoded values** - Everything configurable via `tfvars`
-- **Dynamic instance creation** - Create multiple instances with different configurations
+- **Dynamic instance creation** - Create multiple instances with different configurations using `for_each` loops
+- **Global defaults with instance overrides** - Set common configurations globally and override per instance
 - **Intelligent IAM management** - Smart handling of existing vs new IAM resources
 - **Comprehensive configuration** - All base module variables exposed
 - **Template-based user data** - Dynamic user data generation
@@ -408,6 +410,220 @@ graph TD
     style YY fill:#c8e6c9
 ```
 
+## 🔄 Loop Functionality & Defaults
+
+### 🎯 **How the Loop System Works**
+
+The wrapper module uses Terraform's `for_each` meta-argument to create multiple EC2 instances with different configurations. This provides:
+
+#### **✅ Dynamic Instance Creation:**
+```hcl
+# Each key in the instances map becomes a separate EC2 instance
+instances = {
+  web_server = { ... }    # Creates: web-server instance
+  app_server = { ... }    # Creates: app-server instance  
+  db_server = { ... }     # Creates: db-server instance
+}
+```
+
+#### **✅ Global Defaults with Instance Overrides:**
+```hcl
+# Global settings apply to all instances
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  iam_role_policies = {
+    SSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+  additional_tags = {
+    Environment = "production"
+    ManagedBy = "terraform"
+  }
+}
+
+# Instance-specific settings override globals
+instances = {
+  web_server = {
+    # Inherits global settings but can override
+    monitoring = true  # Override global setting
+    tags = {
+      Name = "web-server"  # Instance-specific tag
+      Role = "web"         # Instance-specific tag
+    }
+  }
+}
+```
+
+### 🔧 **Configuration Merging Logic**
+
+The wrapper uses intelligent merging to combine global and instance-specific configurations:
+
+#### **✅ Priority Order:**
+1. **Instance-specific settings** (highest priority)
+2. **Global settings** (medium priority)
+3. **Module defaults** (lowest priority)
+
+#### **✅ Merging Examples:**
+
+**IAM Policies:**
+```hcl
+# Global policies
+global_settings.iam_role_policies = {
+  SSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Instance-specific policies
+instances.web_server.iam_role_policies = {
+  CloudWatchAgentServerPolicy = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# Result: Both policies are merged
+# Final policies = SSMManagedInstanceCore + CloudWatchAgentServerPolicy
+```
+
+**Tags:**
+```hcl
+# Global tags
+global_settings.additional_tags = {
+  Environment = "production"
+  ManagedBy = "terraform"
+}
+
+# Instance-specific tags
+instances.web_server.tags = {
+  Name = "web-server"
+  Role = "web"
+}
+
+# Result: All tags are merged
+# Final tags = Environment + ManagedBy + Name + Role
+```
+
+### 📊 **Loop Processing Flow**
+
+```mermaid
+graph TD
+    A[Parse instances map] --> B[For each instance key]
+    B --> C[Load instance configuration]
+    C --> D[Load global settings]
+    D --> E[Merge configurations]
+    E --> F[Apply instance-specific overrides]
+    F --> G[Generate user data template]
+    G --> H[Create EC2 instance]
+    H --> I[Apply tags and naming]
+    I --> J[Next instance]
+    J --> K{More instances?}
+    K -->|Yes| B
+    K -->|No| L[Complete]
+    
+    style A fill:#e1f5fe
+    style L fill:#c8e6c9
+    style E fill:#fff3e0
+    style F fill:#f3e5f5
+```
+
+### 🎛️ **Configuration Examples**
+
+#### **✅ Simple Loop Example:**
+```hcl
+instances = {
+  server1 = {
+    name = "server-1"
+    ami = "ami-123456"
+    instance_type = "t3.micro"
+    # ... other required settings
+  }
+  server2 = {
+    name = "server-2"
+    ami = "ami-123456"
+    instance_type = "t3.small"
+    # ... other required settings
+  }
+}
+```
+
+#### **✅ Advanced Loop with Defaults:**
+```hcl
+# Global defaults
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  iam_role_policies = {
+    SSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+  additional_tags = {
+    Environment = "production"
+    Team = "DevOps"
+  }
+}
+
+# Multiple instances with overrides
+instances = {
+  web = {
+    name = "web-server"
+    instance_type = "t3.micro"
+    # Inherits global settings
+    tags = {
+      Name = "web-server"
+      Role = "web"
+    }
+  }
+  app = {
+    name = "app-server"
+    instance_type = "t3.small"
+    # Override global monitoring
+    monitoring = false
+    tags = {
+      Name = "app-server"
+      Role = "application"
+    }
+  }
+  db = {
+    name = "db-server"
+    instance_type = "t3.medium"
+    # Override global termination protection
+    disable_api_termination = true
+    tags = {
+      Name = "db-server"
+      Role = "database"
+    }
+  }
+}
+```
+
+### 🔄 **Resource Creation with Loops**
+
+Each instance in the loop creates:
+
+#### **✅ Individual Resources:**
+- **EC2 Instance** - `aws_instance.this[instance_name]`
+- **Root Block Device** - `aws_instance.this[instance_name].root_block_device`
+- **EBS Volumes** - `aws_instance.this[instance_name].ebs_block_device`
+- **Instance Tags** - Merged from global + instance-specific
+
+#### **✅ Shared Resources:**
+- **Security Groups** - Created once, attached to all instances
+- **IAM Roles/Profiles** - Created once, used by all instances
+- **Monitoring Resources** - Created once, monitor all instances
+
+### 📈 **Benefits of Loop System**
+
+#### **✅ Scalability:**
+- Create 1 to 100+ instances with single configuration
+- Consistent configuration across all instances
+- Easy to add/remove instances
+
+#### **✅ Maintainability:**
+- Single source of truth for common settings
+- Instance-specific overrides when needed
+- DRY (Don't Repeat Yourself) principle
+
+#### **✅ Flexibility:**
+- Different instance types per instance
+- Different storage configurations
+- Different user data templates
+- Different tagging strategies
+
 ### Resource Relationship Diagram
 
 ```mermaid
@@ -551,7 +767,8 @@ graph TB
 ## ✨ Features
 
 ### 🎯 **Core Features**
-- **Dynamic Instance Creation** - Create multiple instances with different configurations
+- **Dynamic Instance Creation** - Create multiple instances with different configurations using `for_each` loops
+- **Global Defaults with Instance Overrides** - Set common configurations globally and override per instance
 - **Zero Hardcoded Values** - Everything configurable via `tfvars`
 - **Template-based User Data** - Dynamic user data generation
 - **Comprehensive Variable Exposure** - All base module variables available
