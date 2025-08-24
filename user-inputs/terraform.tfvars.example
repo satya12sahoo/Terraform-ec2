@@ -1,0 +1,200 @@
+# AWS Configuration
+aws_region = "us-west-2"
+
+# Project Configuration
+environment  = "development"
+project_name = "my-web-application"
+
+# Instance configurations - everything is defined here
+instances = {
+  # Web Server 1
+  web_server_1 = {
+    name                        = "web-server-1"
+    ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
+    instance_type              = "t3.micro"
+    availability_zone          = "us-west-2a"
+    subnet_id                  = "subnet-1234567890abcdef0"  # Replace with your subnet ID
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]    # Replace with your security group ID
+    associate_public_ip_address = true
+    key_name                   = "my-key-pair"             # Replace with your key pair name
+    
+    # User data template variables
+    user_data_template_vars = {
+      hostname = "web-server-1"
+      role     = "web"
+    }
+    
+    # Root block device
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-1-root"
+      }
+    }
+    
+    # Instance settings
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    # IAM configuration
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    # Metadata options
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    # Tags
+    tags = {
+      Name = "web-server-1"
+      Role = "web"
+      Tier = "frontend"
+      Environment = "development"
+      ManagedBy = "github-actions"
+    }
+  }
+  
+  # Application Server
+  app_server = {
+    name                        = "app-server"
+    ami                         = "ami-0c02fb55956c7d316"
+    instance_type              = "t3.small"
+    availability_zone          = "us-west-2b"
+    subnet_id                  = "subnet-1234567890abcdef1"  # Replace with your subnet ID
+    vpc_security_group_ids     = ["sg-1234567890abcdef1"]    # Replace with your security group ID
+    associate_public_ip_address = false  # Private subnet
+    key_name                   = "my-key-pair"
+    
+    user_data_template_vars = {
+      hostname = "app-server"
+      role     = "application"
+    }
+    
+    root_block_device = {
+      size       = 30
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "app-server-root"
+      }
+    }
+    
+    # Additional EBS volumes
+    ebs_volumes = {
+      data_volume = {
+        size       = 100
+        type       = "gp3"
+        encrypted  = true
+        throughput = 125
+        tags = {
+          Name = "app-server-data"
+          Purpose = "application-data"
+        }
+      }
+    }
+    
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    tags = {
+      Name = "app-server"
+      Role = "application"
+      Tier = "backend"
+      Environment = "development"
+      ManagedBy = "github-actions"
+    }
+  }
+}
+
+# Global settings that apply to all instances
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  enable_termination_protection = false
+  enable_stop_protection = false
+  create_iam_profiles = false
+  iam_role_policies = {}
+  additional_tags = {
+    ManagedBy = "github-actions"
+    Repository = "your-repo-name"
+    Workflow = "deploy-ec2"
+    Environment = "development"
+  }
+}
+
+# Optional: Enable monitoring module
+enable_monitoring_module = false
+monitoring = {
+  cloudwatch_agent_role_name = "cloudwatch-agent-role"
+  dashboard_name = "ec2-monitoring-dashboard"
+  cpu_alarm_name = "high-cpu-alarm"
+  memory_alarm_name = "high-memory-alarm"
+  disk_alarm_name = "high-disk-alarm"
+  sns_topic_name = "ec2-alerts"
+  cloudwatch_agent_config_parameter_name = "/cloudwatch-agent/config"
+  log_groups = {
+    application_logs = {
+      name = "/aws/ec2/application"
+      retention_in_days = 7
+    }
+    system_logs = {
+      name = "/aws/ec2/system"
+      retention_in_days = 14
+    }
+  }
+}
+
+# Optional: Enable logging module
+enable_logging_module = false
+logging = {
+  create_s3_logging_bucket = false
+  s3_logging_bucket_name = "my-logs-bucket"
+  use_existing_s3_bucket = false
+  existing_s3_bucket_name = ""
+  logging_iam_role_name = "logging-role"
+  logging_agent_config_parameter_name = "/logging-agent/config"
+  logging_alarm_name = "logging-alarm"
+  logging_dashboard_name = "logging-dashboard"
+  cloudwatch_log_groups = {
+    application_logs = {
+      name = "/aws/ec2/logs/application"
+      retention_in_days = 7
+    }
+  }
+}
+
+# System tags configuration
+managed_by_tag = "terraform"
+feature_tag = "adaptive-iam"
+ec2_service_principal = "ec2.amazonaws.com"
+assume_role_policy_version = "2012-10-17"
+default_role_name = "default"
+
+# User data configuration
+enable_user_data_template = false
+user_data_template_path = "templates/user_data.sh"
+user_data = null
+user_data_base64 = null
+user_data_replace_on_change = false

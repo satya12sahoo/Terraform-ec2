@@ -1,0 +1,231 @@
+name: Deploy EC2 Instances
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_input_directory:
+        description: 'Directory containing user input files (tfvars)'
+        required: true
+        default: 'user-inputs'
+        type: string
+      terraform_action:
+        description: 'Terraform action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      auto_approve:
+        description: 'Auto approve terraform changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TF_VERSION: "1.5.0"
+  TFLINT_VERSION: "v0.53.0"
+
+jobs:
+  deploy:
+    name: Deploy EC2 Instances
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create user input directory if it doesn't exist
+        run: |
+          mkdir -p ${{ github.event.inputs.user_input_directory }}
+          echo "Created/verified directory: ${{ github.event.inputs.user_input_directory }}"
+
+      - name: Copy wrapper module to user input directory
+        run: |
+          cp -r wrapper/* ${{ github.event.inputs.user_input_directory }}/
+          echo "Copied wrapper module to ${{ github.event.inputs.user_input_directory }}"
+
+      - name: Create example tfvars file if none exists
+        run: |
+          if [ ! -f "${{ github.event.inputs.user_input_directory }}/terraform.tfvars" ]; then
+            echo "Creating example terraform.tfvars file..."
+            cat > ${{ github.event.inputs.user_input_directory }}/terraform.tfvars << 'EOF'
+# AWS Configuration
+aws_region = "${{ secrets.AWS_REGION }}"
+
+# Project Configuration
+environment  = "development"
+project_name = "github-action-deployment"
+
+# Instance configurations
+instances = {
+  # Example Web Server
+  web_server = {
+    name                        = "web-server"
+    ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
+    instance_type              = "t3.micro"
+    availability_zone          = "${{ secrets.AWS_REGION }}a"
+    subnet_id                  = "subnet-1234567890abcdef0"  # Replace with your subnet ID
+    vpc_security_group_ids     = ["sg-1234567890abcdef0"]    # Replace with your security group ID
+    associate_public_ip_address = true
+    key_name                   = "your-key-pair"             # Replace with your key pair name
+    
+    # User data template variables
+    user_data_template_vars = {
+      hostname = "web-server"
+      role     = "web"
+    }
+    
+    # Root block device
+    root_block_device = {
+      size       = 20
+      type       = "gp3"
+      encrypted  = true
+      throughput = 125
+      tags = {
+        Name = "web-server-root"
+      }
+    }
+    
+    # Instance settings
+    disable_api_stop       = false
+    disable_api_termination = false
+    ebs_optimized          = true
+    monitoring             = true
+    
+    # IAM configuration
+    create_iam_instance_profile = false
+    iam_role_policies          = {}
+    
+    # Metadata options
+    metadata_options = {
+      http_endpoint               = "enabled"
+      http_tokens                 = "required"
+      http_put_response_hop_limit = 1
+      instance_metadata_tags      = "enabled"
+    }
+    
+    # Tags
+    tags = {
+      Name = "web-server"
+      Role = "web"
+      Tier = "frontend"
+      Environment = "development"
+      ManagedBy = "github-actions"
+    }
+  }
+}
+
+# Global settings
+global_settings = {
+  enable_monitoring = true
+  enable_ebs_optimization = true
+  enable_termination_protection = false
+  enable_stop_protection = false
+  create_iam_profiles = false
+  iam_role_policies = {}
+  additional_tags = {
+    ManagedBy = "github-actions"
+    Repository = "${{ github.repository }}"
+    Workflow = "${{ github.workflow }}"
+    RunId = "${{ github.run_id }}"
+  }
+}
+EOF
+            echo "Created example terraform.tfvars file"
+          else
+            echo "terraform.tfvars file already exists"
+          fi
+
+      - name: Change to user input directory
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          pwd
+          ls -la
+
+      - name: Terraform Init
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          terraform init
+
+      - name: Terraform Format Check
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          terraform validate
+
+      - name: TFLint
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          tflint --init
+          tflint
+
+      - name: Terraform Plan
+        if: github.event.inputs.terraform_action == 'plan'
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        if: github.event.inputs.terraform_action == 'apply'
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          if [ "${{ github.event.inputs.auto_approve }}" = "true" ]; then
+            terraform apply -auto-approve
+          else
+            terraform apply
+          fi
+
+      - name: Terraform Destroy
+        if: github.event.inputs.terraform_action == 'destroy'
+        run: |
+          cd ${{ github.event.inputs.user_input_directory }}
+          if [ "${{ github.event.inputs.auto_approve }}" = "true" ]; then
+            terraform destroy -auto-approve
+          else
+            terraform destroy
+          fi
+
+      - name: Upload Terraform Plan
+        if: github.event.inputs.terraform_action == 'plan'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: ${{ github.event.inputs.user_input_directory }}/tfplan
+          retention-days: 7
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && github.event.inputs.terraform_action == 'plan'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('${{ github.event.inputs.user_input_directory }}/tfplan', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Terraform Plan Results\n\n\`\`\`\n${plan}\n\`\`\``
+            });
