@@ -1,37 +1,130 @@
 #!/bin/bash
 
-# Set hostname
-hostnamectl set-hostname ${hostname}
+# User Data Template for EC2 Instance Configuration
+# This script is used by the wrapper module to configure instances on startup
 
-# Update system
+set -e
+
+# Log all output to a file for debugging
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+echo "Starting user data script execution..."
+
+# Update system packages
+echo "Updating system packages..."
 yum update -y
 
 # Install common packages
+echo "Installing common packages..."
 yum install -y \
-    wget \
-    curl \
-    git \
-    unzip \
+    aws-cli \
     jq \
     htop \
-    tree \
-    vim \
-    net-tools \
-    nfs-utils
+    wget \
+    curl \
+    unzip \
+    git
 
-# Configure system based on role
+# Configure hostname if provided
+if [ -n "${hostname}" ]; then
+    echo "Setting hostname to ${hostname}..."
+    hostnamectl set-hostname "${hostname}"
+    echo "${hostname}" > /etc/hostname
+fi
+
+# Create application user
+echo "Creating application user..."
+useradd -m -s /bin/bash appuser || true
+usermod -aG wheel appuser
+
+# Create application directory
+mkdir -p /opt/app
+chown appuser:appuser /opt/app
+
+# Configure CloudWatch Agent if monitoring is enabled
+if [ "${monitoring}" = "true" ]; then
+    echo "Configuring CloudWatch Agent..."
+    yum install -y amazon-cloudwatch-agent
+    
+    # Create CloudWatch Agent configuration
+    cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOF'
+{
+    "agent": {
+        "metrics_collection_interval": 60,
+        "run_as_user": "cwagent"
+    },
+    "logs": {
+        "logs_collected": {
+            "files": {
+                "collect_list": [
+                    {
+                        "file_path": "/var/log/messages",
+                        "log_group_name": "/aws/ec2/{instance_id}/messages",
+                        "log_stream_name": "{instance_id}"
+                    },
+                    {
+                        "file_path": "/var/log/user-data.log",
+                        "log_group_name": "/aws/ec2/{instance_id}/user-data",
+                        "log_stream_name": "{instance_id}"
+                    }
+                ]
+            }
+        }
+    },
+    "metrics": {
+        "metrics_collected": {
+            "disk": {
+                "measurement": [
+                    "used_percent"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                    "*"
+                ]
+            },
+            "mem": {
+                "measurement": [
+                    "mem_used_percent"
+                ],
+                "metrics_collection_interval": 60
+            }
+        }
+    }
+}
+EOF
+
+    # Start CloudWatch Agent
+    systemctl enable amazon-cloudwatch-agent
+    systemctl start amazon-cloudwatch-agent
+fi
+
+# Role-specific configurations
 case "${role}" in
     "web")
-        # Install web server packages
-        yum install -y httpd php php-mysqlnd
+        echo "Configuring web server..."
         
-        # Start and enable Apache
-        systemctl start httpd
+        # Install web server (Apache)
+        yum install -y httpd
         systemctl enable httpd
+        systemctl start httpd
         
-        # Create web content directory
-        mkdir -p /var/www/html
-        echo "<h1>Welcome to ${hostname}</h1><p>Role: ${role}</p>" > /var/www/html/index.html
+        # Create simple index page
+        cat > /var/www/html/index.html << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EC2 Instance - ${hostname}</title>
+</head>
+<body>
+    <h1>Welcome to ${hostname}</h1>
+    <p>This is a web server instance deployed via Terraform.</p>
+    <p>Environment: ${environment}</p>
+    <p>Role: ${role}</p>
+    <p>Instance ID: $(curl -s http://169.254.169.254/latest/meta-data/instance-id)</p>
+    <p>Availability Zone: $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)</p>
+</body>
+</html>
+EOF
         
         # Configure firewall
         firewall-cmd --permanent --add-service=http
@@ -39,53 +132,102 @@ case "${role}" in
         firewall-cmd --reload
         ;;
         
-    "application")
-        # Install application server packages
-        yum install -y java-11-amazon-corretto-headless tomcat
+    "database")
+        echo "Configuring database server..."
         
-        # Start and enable Tomcat
-        systemctl start tomcat
-        systemctl enable tomcat
+        # Install database server (MySQL)
+        yum install -y mysql-server
+        systemctl enable mysqld
+        systemctl start mysqld
         
-        # Create application directories
-        mkdir -p /opt/app/{logs,config,data}
+        # Secure MySQL installation
+        mysql_secure_installation << EOF
+
+y
+1
+2
+y
+y
+y
+y
+EOF
+        
+        # Create application database
+        mysql -u root -p'root' << EOF
+CREATE DATABASE IF NOT EXISTS appdb;
+CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'apppassword';
+GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'localhost';
+FLUSH PRIVILEGES;
+EOF
         
         # Configure firewall
-        firewall-cmd --permanent --add-port=8080/tcp
+        firewall-cmd --permanent --add-service=mysql
         firewall-cmd --reload
         ;;
         
-    "database")
-        # Install database packages
-        yum install -y mysql mysql-server
+    "application")
+        echo "Configuring application server..."
         
-        # Start and enable MySQL
-        systemctl start mysqld
-        systemctl enable mysqld
+        # Install Java (for Spring Boot applications)
+        yum install -y java-11-amazon-corretto
         
-        # Secure MySQL installation
-        mysql_secure_installation --use-default
+        # Create application directory
+        mkdir -p /opt/app
+        chown appuser:appuser /opt/app
         
-        # Create database directories
-        mkdir -p /var/lib/mysql/{data,backup}
+        # Create systemd service file
+        cat > /etc/systemd/system/app.service << EOF
+[Unit]
+Description=Application Service
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/opt/app
+ExecStart=/usr/bin/java -jar /opt/app/app.jar
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
         
-        # Configure firewall
-        firewall-cmd --permanent --add-port=3306/tcp
-        firewall-cmd --reload
+        systemctl daemon-reload
+        systemctl enable app
         ;;
         
     *)
-        echo "Unknown role: ${role}"
+        echo "No specific role configuration for: ${role}"
         ;;
 esac
 
-# Configure logging
-mkdir -p /var/log/app
-echo "$(date): Instance ${hostname} with role ${role} initialized" >> /var/log/app/init.log
+# Environment-specific configurations
+case "${environment}" in
+    "development")
+        echo "Configuring development environment..."
+        # Add development-specific configurations
+        ;;
+        
+    "staging")
+        echo "Configuring staging environment..."
+        # Add staging-specific configurations
+        ;;
+        
+    "production")
+        echo "Configuring production environment..."
+        # Add production-specific configurations
+        
+        # Enable additional security measures
+        yum install -y fail2ban
+        systemctl enable fail2ban
+        systemctl start fail2ban
+        ;;
+esac
 
-# Set up log rotation
-cat > /etc/logrotate.d/app << EOF
-/var/log/app/*.log {
+# Configure log rotation
+cat > /etc/logrotate.d/user-data << EOF
+/var/log/user-data.log {
     daily
     missingok
     rotate 7
@@ -95,19 +237,51 @@ cat > /etc/logrotate.d/app << EOF
 }
 EOF
 
-# Create monitoring script
-cat > /opt/monitor.sh << 'EOF'
+# Set up monitoring and alerting
+if [ "${monitoring}" = "true" ]; then
+    # Create custom CloudWatch metric for instance health
+    cat > /opt/health-check.sh << 'EOF'
 #!/bin/bash
-echo "$(date): System monitoring check" >> /var/log/app/monitor.log
-df -h >> /var/log/app/monitor.log
-free -m >> /var/log/app/monitor.log
-echo "---" >> /var/log/app/monitor.log
+# Health check script for CloudWatch
+
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+
+# Check if instance is healthy (customize based on your application)
+HEALTH_STATUS=1
+
+# Send custom metric to CloudWatch
+aws cloudwatch put-metric-data \
+    --namespace "EC2/InstanceHealth" \
+    --metric-data MetricName=HealthStatus,Value=$HEALTH_STATUS,Unit=Count,Dimensions=InstanceId=$INSTANCE_ID \
+    --region $REGION
 EOF
 
-chmod +x /opt/monitor.sh
+    chmod +x /opt/health-check.sh
+    
+    # Add to crontab to run every 5 minutes
+    (crontab -l 2>/dev/null; echo "*/5 * * * * /opt/health-check.sh") | crontab -
+fi
 
-# Add monitoring to crontab
-echo "*/5 * * * * /opt/monitor.sh" | crontab -
+# Final system configuration
+echo "Performing final system configuration..."
 
-# Final system message
-echo "Instance ${hostname} (${role}) initialization completed at $(date)" >> /var/log/app/init.log
+# Set timezone
+timedatectl set-timezone UTC
+
+# Configure SSH (optional security hardening)
+if [ "${environment}" = "production" ]; then
+    # Disable root login
+    sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+    
+    # Disable password authentication
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+    
+    # Restart SSH service
+    systemctl restart sshd
+fi
+
+# Create completion marker
+echo "User data script completed successfully at $(date)" > /var/log/user-data-complete
+
+echo "User data script execution completed!"
