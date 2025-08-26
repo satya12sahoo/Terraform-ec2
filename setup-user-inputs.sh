@@ -25,9 +25,6 @@ PROJECT=${PROJECT:-$DEFAULT_PROJECT}
 read -p "Enter user input directory name [user-inputs]: " INPUT_DIR
 INPUT_DIR=${INPUT_DIR:-user-inputs}
 
-read -p "Enter VPC ID [vpc-your-vpc-id]: " VPC_ID
-VPC_ID=${VPC_ID:-vpc-your-vpc-id}
-
 # Create directory structure
 echo "📁 Creating directory structure..."
 mkdir -p "$INPUT_DIR"
@@ -52,13 +49,13 @@ project_name = "$PROJECT"
 
 # Security Group Configuration
 create_security_group = true
-security_group_name = "ec2-security-group"
+security_group_name = "security-group"
 security_group_description = "Security group for EC2 instances"
-security_group_vpc_id = "$VPC_ID"
+security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
 create_iam_role = true
-iam_role_name = "ec2-ssm-role"
+iam_role_name = "iam-role"
 iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations
@@ -326,14 +323,14 @@ project_name = "$PROJECT-dev"
 
 # Security Group Configuration
 create_security_group = true
-security_group_name = "dev-ec2-security-group"
-security_group_description = "Security group for development EC2 instances"
-security_group_vpc_id = "$VPC_ID"
+security_group_name = "security-group"
+security_group_description = "Security group for EC2 instances"
+security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
 create_iam_role = true
-iam_role_name = "dev-ec2-ssm-role"
-iam_role_description = "IAM role for development EC2 instances with SSM access"
+iam_role_name = "iam-role"
+iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations for development
 instances = {
@@ -470,14 +467,14 @@ project_name = "$PROJECT-prod"
 
 # Security Group Configuration
 create_security_group = true
-security_group_name = "prod-ec2-security-group"
-security_group_description = "Security group for production EC2 instances"
-security_group_vpc_id = "$VPC_ID"
+security_group_name = "security-group"
+security_group_description = "Security group for EC2 instances"
+security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
 create_iam_role = true
-iam_role_name = "prod-ec2-ssm-role"
-iam_role_description = "IAM role for production EC2 instances with SSM access"
+iam_role_name = "iam-role"
+iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations for production
 instances = {
@@ -619,7 +616,7 @@ This directory contains your Terraform configuration files for deploying EC2 ins
    - \`AWS_REGION\`
 
 2. **Update your configuration** by editing \`terraform.tfvars\`:
-   - Replace \`vpc-your-vpc-id\` with your actual VPC ID
+   - VPC ID is already set to vpc-3d80a556
    - Customize instance configurations as needed
 
 3. **Run the GitHub Action**:
@@ -648,17 +645,17 @@ $INPUT_DIR/
 
 ### Required Changes
 
-Before running the action, update these values in your \`terraform.tfvars\`:
+Before running the action, verify these values in your \`terraform.tfvars\`:
 
-- \`security_group_vpc_id\`: Your actual VPC ID
-- \`subnet_id\`: Your actual subnet ID (currently set to subnet-a65c14eb)
+- \`security_group_vpc_id\`: Set to vpc-3d80a556
+- \`subnet_id\`: Set to subnet-a65c14eb
 
 ### Features
 
 - **SSM Access**: All instances are configured for AWS Systems Manager access
 - **No Key Pairs**: Instances use SSM for secure access instead of SSH keys
-- **Security Groups**: Automatically created with configurable rules
-- **IAM Roles**: Automatically created with SSM permissions
+- **Security Groups**: Automatically created with name "security-group"
+- **IAM Roles**: Automatically created with name "iam-role"
 
 ### Environment-Specific Deployments
 
@@ -683,7 +680,7 @@ EOF
 echo "✅ Setup completed successfully!"
 echo ""
 echo "📋 Next steps:"
-echo "1. Update the VPC ID in $INPUT_DIR/terraform.tfvars (replace 'vpc-your-vpc-id')"
+echo "1. VPC ID is already set to vpc-3d80a556"
 echo "2. Configure GitHub secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)"
 echo "3. Run the GitHub Action with user input directory: $INPUT_DIR"
 echo ""
@@ -695,10 +692,11 @@ echo "  ├── environments/prod/terraform.tfvars"
 echo "  └── templates/user_data.sh"
 echo ""
 echo "🔧 Key Features:"
-echo "  ✅ Security groups created with specific names from tfvars"
-echo "  ✅ IAM roles created with SSM access"
-echo "  ✅ No key pairs required - SSM access only"
+echo "  ✅ Security group name: security-group (no prefixes/suffixes)"
+echo "  ✅ IAM role name: iam-role (no prefixes/suffixes)"
+echo "  ✅ VPC ID set to vpc-3d80a556"
 echo "  ✅ Subnet ID set to subnet-a65c14eb"
+echo "  ✅ No key pairs required - SSM access only"
 echo ""
 echo "🔧 To customize further, edit the configuration files and refer to:"
 echo "  - GITHUB_ACTION_SETUP.md for detailed instructions"

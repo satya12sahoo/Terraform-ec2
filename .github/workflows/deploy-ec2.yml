@@ -77,13 +77,13 @@ project_name = "github-action-deployment"
 
 # Security Group Configuration
 create_security_group = true
-security_group_name = "ec2-security-group"
+security_group_name = "security-group"
 security_group_description = "Security group for EC2 instances"
-security_group_vpc_id = "vpc-your-vpc-id"  # Replace with your VPC ID
+security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
 create_iam_role = true
-iam_role_name = "ec2-ssm-role"
+iam_role_name = "iam-role"
 iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations
