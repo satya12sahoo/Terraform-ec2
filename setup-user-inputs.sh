@@ -25,6 +25,9 @@ PROJECT=${PROJECT:-$DEFAULT_PROJECT}
 read -p "Enter user input directory name [user-inputs]: " INPUT_DIR
 INPUT_DIR=${INPUT_DIR:-user-inputs}
 
+read -p "Enter VPC ID [vpc-your-vpc-id]: " VPC_ID
+VPC_ID=${VPC_ID:-vpc-your-vpc-id}
+
 # Create directory structure
 echo "📁 Creating directory structure..."
 mkdir -p "$INPUT_DIR"
@@ -47,6 +50,17 @@ aws_region = "$REGION"
 environment  = "$ENVIRONMENT"
 project_name = "$PROJECT"
 
+# Security Group Configuration
+create_security_group = true
+security_group_name = "ec2-security-group"
+security_group_description = "Security group for EC2 instances"
+security_group_vpc_id = "$VPC_ID"
+
+# IAM Configuration
+create_iam_role = true
+iam_role_name = "ec2-ssm-role"
+iam_role_description = "IAM role for EC2 instances with SSM access"
+
 # Instance configurations
 instances = {
   web_server = {
@@ -54,10 +68,8 @@ instances = {
     ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
     instance_type              = "t3.micro"
     availability_zone          = "${REGION}a"
-    subnet_id                  = "subnet-1234567890abcdef0"  # Replace with your subnet ID
-    vpc_security_group_ids     = ["sg-1234567890abcdef0"]    # Replace with your security group ID
+    subnet_id                  = "subnet-a65c14eb"
     associate_public_ip_address = true
-    key_name                   = "your-key-pair"             # Replace with your key pair name
     
     # User data template variables
     user_data_template_vars = {
@@ -84,9 +96,11 @@ instances = {
     ebs_optimized          = true
     monitoring             = true
     
-    # IAM configuration
-    create_iam_instance_profile = false
-    iam_role_policies          = {}
+    # IAM configuration - will use the created role
+    create_iam_instance_profile = true
+    iam_role_policies          = {
+      "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
     
     # Metadata options
     metadata_options = {
@@ -114,14 +128,51 @@ global_settings = {
   enable_ebs_optimization = true
   enable_termination_protection = false
   enable_stop_protection = false
-  create_iam_profiles = false
-  iam_role_policies = {}
+  create_iam_profiles = true
+  iam_role_policies = {
+    "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
   additional_tags = {
     ManagedBy = "github-actions"
     Repository = "your-repo-name"
     Workflow = "deploy-ec2"
     Environment = "$ENVIRONMENT"
     Project = "$PROJECT"
+  }
+}
+
+# Security Group Rules
+security_group_ingress_rules = {
+  http = {
+    description = "HTTP access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  https = {
+    description = "HTTPS access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ssh = {
+    description = "SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+security_group_egress_rules = {
+  all_outbound = {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -209,6 +260,14 @@ if [ "${role}" = "web" ]; then
                 <li><strong>Launch Time:</strong> $(date)</li>
             </ul>
         </div>
+        <div class="info">
+            <h2>SSM Access</h2>
+            <p>This instance is configured for AWS Systems Manager (SSM) access. You can connect using:</p>
+            <ul>
+                <li><strong>AWS CLI:</strong> aws ssm start-session --target $(curl -s http://169.254.169.254/latest/meta-data/instance-id)</li>
+                <li><strong>AWS Console:</strong> Go to EC2 → Instances → Select this instance → Connect → Session Manager</li>
+            </ul>
+        </div>
     </div>
 </body>
 </html>
@@ -227,6 +286,10 @@ echo "Private IP: $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)"
 echo "Public IP: $(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"
 echo "Launch Time: $(date)"
 echo ""
+echo "=== SSM Connection Info ==="
+echo "To connect via SSM:"
+echo "aws ssm start-session --target $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
+echo ""
 echo "=== Disk Usage ==="
 df -h
 echo ""
@@ -244,6 +307,7 @@ echo "EC2 instance initialization completed successfully!"
 echo "Hostname: ${hostname}"
 echo "Role: ${role}"
 echo "Environment: ${environment}"
+echo "SSM Access: aws ssm start-session --target $(curl -s http://169.254.169.254/latest/meta-data/instance-id)"
 EOF
 
 chmod +x "$INPUT_DIR/templates/user_data.sh"
@@ -260,6 +324,17 @@ aws_region = "$REGION"
 environment  = "development"
 project_name = "$PROJECT-dev"
 
+# Security Group Configuration
+create_security_group = true
+security_group_name = "dev-ec2-security-group"
+security_group_description = "Security group for development EC2 instances"
+security_group_vpc_id = "$VPC_ID"
+
+# IAM Configuration
+create_iam_role = true
+iam_role_name = "dev-ec2-ssm-role"
+iam_role_description = "IAM role for development EC2 instances with SSM access"
+
 # Instance configurations for development
 instances = {
   dev_web_server = {
@@ -267,10 +342,8 @@ instances = {
     ami                         = "ami-0c02fb55956c7d316"
     instance_type              = "t3.micro"
     availability_zone          = "${REGION}a"
-    subnet_id                  = "subnet-1234567890abcdef0"
-    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    subnet_id                  = "subnet-a65c14eb"
     associate_public_ip_address = true
-    key_name                   = "dev-key-pair"
     
     user_data_template_vars = {
       hostname = "dev-web-server"
@@ -294,8 +367,10 @@ instances = {
     ebs_optimized          = true
     monitoring             = true
     
-    create_iam_instance_profile = false
-    iam_role_policies          = {}
+    create_iam_instance_profile = true
+    iam_role_policies          = {
+      "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
     
     metadata_options = {
       http_endpoint               = "enabled"
@@ -321,14 +396,51 @@ global_settings = {
   enable_ebs_optimization = true
   enable_termination_protection = false
   enable_stop_protection = false
-  create_iam_profiles = false
-  iam_role_policies = {}
+  create_iam_profiles = true
+  iam_role_policies = {
+    "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
   additional_tags = {
     ManagedBy = "github-actions"
     Repository = "your-repo-name"
     Workflow = "deploy-ec2"
     Environment = "development"
     Project = "$PROJECT"
+  }
+}
+
+# Security Group Rules
+security_group_ingress_rules = {
+  http = {
+    description = "HTTP access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  https = {
+    description = "HTTPS access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ssh = {
+    description = "SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+security_group_egress_rules = {
+  all_outbound = {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -356,6 +468,17 @@ aws_region = "$REGION"
 environment  = "production"
 project_name = "$PROJECT-prod"
 
+# Security Group Configuration
+create_security_group = true
+security_group_name = "prod-ec2-security-group"
+security_group_description = "Security group for production EC2 instances"
+security_group_vpc_id = "$VPC_ID"
+
+# IAM Configuration
+create_iam_role = true
+iam_role_name = "prod-ec2-ssm-role"
+iam_role_description = "IAM role for production EC2 instances with SSM access"
+
 # Instance configurations for production
 instances = {
   prod_web_server = {
@@ -363,10 +486,8 @@ instances = {
     ami                         = "ami-0c02fb55956c7d316"
     instance_type              = "t3.small"
     availability_zone          = "${REGION}a"
-    subnet_id                  = "subnet-1234567890abcdef0"
-    vpc_security_group_ids     = ["sg-1234567890abcdef0"]
+    subnet_id                  = "subnet-a65c14eb"
     associate_public_ip_address = true
-    key_name                   = "prod-key-pair"
     
     user_data_template_vars = {
       hostname = "prod-web-server"
@@ -390,8 +511,10 @@ instances = {
     ebs_optimized          = true
     monitoring             = true
     
-    create_iam_instance_profile = false
-    iam_role_policies          = {}
+    create_iam_instance_profile = true
+    iam_role_policies          = {
+      "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
     
     metadata_options = {
       http_endpoint               = "enabled"
@@ -418,8 +541,10 @@ global_settings = {
   enable_ebs_optimization = true
   enable_termination_protection = true
   enable_stop_protection = true
-  create_iam_profiles = false
-  iam_role_policies = {}
+  create_iam_profiles = true
+  iam_role_policies = {
+    "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
   additional_tags = {
     ManagedBy = "github-actions"
     Repository = "your-repo-name"
@@ -427,6 +552,41 @@ global_settings = {
     Environment = "production"
     Project = "$PROJECT"
     Backup = "daily"
+  }
+}
+
+# Security Group Rules
+security_group_ingress_rules = {
+  http = {
+    description = "HTTP access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  https = {
+    description = "HTTPS access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ssh = {
+    description = "SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+security_group_egress_rules = {
+  all_outbound = {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -459,7 +619,7 @@ This directory contains your Terraform configuration files for deploying EC2 ins
    - \`AWS_REGION\`
 
 2. **Update your configuration** by editing \`terraform.tfvars\`:
-   - Replace placeholder subnet IDs, security group IDs, and key pair names
+   - Replace \`vpc-your-vpc-id\` with your actual VPC ID
    - Customize instance configurations as needed
 
 3. **Run the GitHub Action**:
@@ -490,26 +650,40 @@ $INPUT_DIR/
 
 Before running the action, update these values in your \`terraform.tfvars\`:
 
-- \`subnet_id\`: Your actual subnet ID
-- \`vpc_security_group_ids\`: Your actual security group IDs
-- \`key_name\`: Your actual EC2 key pair name
+- \`security_group_vpc_id\`: Your actual VPC ID
+- \`subnet_id\`: Your actual subnet ID (currently set to subnet-a65c14eb)
+
+### Features
+
+- **SSM Access**: All instances are configured for AWS Systems Manager access
+- **No Key Pairs**: Instances use SSM for secure access instead of SSH keys
+- **Security Groups**: Automatically created with configurable rules
+- **IAM Roles**: Automatically created with SSM permissions
 
 ### Environment-Specific Deployments
 
 - **Development**: Use \`$INPUT_DIR/environments/dev/\`
 - **Production**: Use \`$INPUT_DIR/environments/prod/\`
 
+## 🔐 SSM Access
+
+All instances are configured for AWS Systems Manager access:
+
+- **AWS CLI**: \`aws ssm start-session --target <instance-id>\`
+- **AWS Console**: EC2 → Instances → Select instance → Connect → Session Manager
+
 ## 📚 Additional Resources
 
 - [GitHub Action Setup Guide](../GITHUB_ACTION_SETUP.md)
 - [Wrapper Module Documentation](../wrapper/README.md)
 - [Terraform Documentation](https://www.terraform.io/docs)
+- [AWS SSM Documentation](https://docs.aws.amazon.com/systems-manager/)
 EOF
 
 echo "✅ Setup completed successfully!"
 echo ""
 echo "📋 Next steps:"
-echo "1. Update the AWS resource IDs in $INPUT_DIR/terraform.tfvars"
+echo "1. Update the VPC ID in $INPUT_DIR/terraform.tfvars (replace 'vpc-your-vpc-id')"
 echo "2. Configure GitHub secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)"
 echo "3. Run the GitHub Action with user input directory: $INPUT_DIR"
 echo ""
@@ -519,6 +693,12 @@ echo "  ├── terraform.tfvars"
 echo "  ├── environments/dev/terraform.tfvars"
 echo "  ├── environments/prod/terraform.tfvars"
 echo "  └── templates/user_data.sh"
+echo ""
+echo "🔧 Key Features:"
+echo "  ✅ Security groups created with specific names from tfvars"
+echo "  ✅ IAM roles created with SSM access"
+echo "  ✅ No key pairs required - SSM access only"
+echo "  ✅ Subnet ID set to subnet-a65c14eb"
 echo ""
 echo "🔧 To customize further, edit the configuration files and refer to:"
 echo "  - GITHUB_ACTION_SETUP.md for detailed instructions"

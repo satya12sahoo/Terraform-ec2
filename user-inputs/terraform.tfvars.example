@@ -5,6 +5,17 @@ aws_region = "us-west-2"
 environment  = "development"
 project_name = "my-web-application"
 
+# Security Group Configuration
+create_security_group = true
+security_group_name = "ec2-security-group"
+security_group_description = "Security group for EC2 instances"
+security_group_vpc_id = "vpc-your-vpc-id"  # Replace with your VPC ID
+
+# IAM Configuration
+create_iam_role = true
+iam_role_name = "ec2-ssm-role"
+iam_role_description = "IAM role for EC2 instances with SSM access"
+
 # Instance configurations - everything is defined here
 instances = {
   # Web Server 1
@@ -13,10 +24,8 @@ instances = {
     ami                         = "ami-0c02fb55956c7d316"  # Amazon Linux 2023 AMI
     instance_type              = "t3.micro"
     availability_zone          = "us-west-2a"
-    subnet_id                  = "subnet-1234567890abcdef0"  # Replace with your subnet ID
-    vpc_security_group_ids     = ["sg-1234567890abcdef0"]    # Replace with your security group ID
+    subnet_id                  = "subnet-a65c14eb"
     associate_public_ip_address = true
-    key_name                   = "my-key-pair"             # Replace with your key pair name
     
     # User data template variables
     user_data_template_vars = {
@@ -41,9 +50,11 @@ instances = {
     ebs_optimized          = true
     monitoring             = true
     
-    # IAM configuration
-    create_iam_instance_profile = false
-    iam_role_policies          = {}
+    # IAM configuration - will use the created role
+    create_iam_instance_profile = true
+    iam_role_policies          = {
+      "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
     
     # Metadata options
     metadata_options = {
@@ -69,10 +80,9 @@ instances = {
     ami                         = "ami-0c02fb55956c7d316"
     instance_type              = "t3.small"
     availability_zone          = "us-west-2b"
-    subnet_id                  = "subnet-1234567890abcdef1"  # Replace with your subnet ID
-    vpc_security_group_ids     = ["sg-1234567890abcdef1"]    # Replace with your security group ID
+    subnet_id                  = "subnet-a65c14eb"
     associate_public_ip_address = false  # Private subnet
-    key_name                   = "my-key-pair"
+    key_name                   = null  # No key pair needed for SSM
     
     user_data_template_vars = {
       hostname = "app-server"
@@ -108,8 +118,10 @@ instances = {
     ebs_optimized          = true
     monitoring             = true
     
-    create_iam_instance_profile = false
-    iam_role_policies          = {}
+    create_iam_instance_profile = true
+    iam_role_policies          = {
+      "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
     
     metadata_options = {
       http_endpoint               = "enabled"
@@ -134,13 +146,50 @@ global_settings = {
   enable_ebs_optimization = true
   enable_termination_protection = false
   enable_stop_protection = false
-  create_iam_profiles = false
-  iam_role_policies = {}
+  create_iam_profiles = true
+  iam_role_policies = {
+    "SSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
   additional_tags = {
     ManagedBy = "github-actions"
     Repository = "your-repo-name"
     Workflow = "deploy-ec2"
     Environment = "development"
+  }
+}
+
+# Security Group Rules
+security_group_ingress_rules = {
+  http = {
+    description = "HTTP access"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  https = {
+    description = "HTTPS access"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ssh = {
+    description = "SSH access"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+security_group_egress_rules = {
+  all_outbound = {
+    description = "All outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
