@@ -50,12 +50,13 @@ project_name = "$PROJECT"
 # Security Group Configuration
 create_security_group = true
 security_group_name = "security-group"
+security_group_use_name_prefix = false
 security_group_description = "Security group for EC2 instances"
 security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
-create_iam_role = true
 iam_role_name = "iam-role"
+iam_role_use_name_prefix = false
 iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations
@@ -324,12 +325,13 @@ project_name = "$PROJECT-dev"
 # Security Group Configuration
 create_security_group = true
 security_group_name = "security-group"
+security_group_use_name_prefix = false
 security_group_description = "Security group for EC2 instances"
 security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
-create_iam_role = true
 iam_role_name = "iam-role"
+iam_role_use_name_prefix = false
 iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations for development
@@ -468,12 +470,13 @@ project_name = "$PROJECT-prod"
 # Security Group Configuration
 create_security_group = true
 security_group_name = "security-group"
+security_group_use_name_prefix = false
 security_group_description = "Security group for EC2 instances"
 security_group_vpc_id = "vpc-3d80a556"
 
 # IAM Configuration
-create_iam_role = true
 iam_role_name = "iam-role"
+iam_role_use_name_prefix = false
 iam_role_description = "IAM role for EC2 instances with SSM access"
 
 # Instance configurations for production
@@ -654,8 +657,8 @@ Before running the action, verify these values in your \`terraform.tfvars\`:
 
 - **SSM Access**: All instances are configured for AWS Systems Manager access
 - **No Key Pairs**: Instances use SSM for secure access instead of SSH keys
-- **Security Groups**: Automatically created with name "security-group"
-- **IAM Roles**: Automatically created with name "iam-role"
+- **Security Groups**: Automatically created with name "security-group" (no prefixes)
+- **IAM Roles**: Automatically created with name "iam-role" (no prefixes)
 
 ### Environment-Specific Deployments
 
