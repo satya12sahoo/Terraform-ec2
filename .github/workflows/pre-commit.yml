@@ -23,6 +23,11 @@ jobs:
       - name: Get root directories
         id: dirs
         uses: clowdhaus/terraform-composite-actions/directories@v1.9.0
+        with:
+          # Exclude user-inputs directory from validation
+          # This directory is for user configuration, not module validation
+          exclude: |
+            user-inputs
 
   preCommitMinVersions:
     name: Min TF pre-commit

@@ -33,9 +33,276 @@ mkdir -p "$INPUT_DIR/environments/staging"
 mkdir -p "$INPUT_DIR/environments/prod"
 mkdir -p "$INPUT_DIR/templates"
 
-# Copy wrapper module files
-echo "📋 Copying wrapper module files..."
-cp -r wrapper/* "$INPUT_DIR/"
+# Create main.tf file to reference wrapper module
+echo "📋 Creating main.tf file..."
+cat > "$INPUT_DIR/main.tf" << 'EOF'
+# Reference the wrapper module
+module "ec2_wrapper" {
+  source = "../wrapper"
+  
+  # Pass all variables from terraform.tfvars
+  aws_region = var.aws_region
+  environment = var.environment
+  project_name = var.project_name
+  instances = var.instances
+  global_settings = var.global_settings
+  
+  # Security Group Configuration
+  create_security_group = var.create_security_group
+  security_group_name = var.security_group_name
+  security_group_use_name_prefix = var.security_group_use_name_prefix
+  security_group_description = var.security_group_description
+  security_group_vpc_id = var.security_group_vpc_id
+  security_group_ingress_rules = var.security_group_ingress_rules
+  security_group_egress_rules = var.security_group_egress_rules
+  
+  # IAM Configuration
+  iam_role_name = var.iam_role_name
+  iam_role_use_name_prefix = var.iam_role_use_name_prefix
+  iam_role_description = var.iam_role_description
+  
+  # Optional monitoring and logging
+  enable_monitoring_module = var.enable_monitoring_module
+  monitoring = var.monitoring
+  enable_logging_module = var.enable_logging_module
+  logging = var.logging
+  
+  # System tags configuration
+  managed_by_tag = var.managed_by_tag
+  feature_tag = var.feature_tag
+  ec2_service_principal = var.ec2_service_principal
+  assume_role_policy_version = var.assume_role_policy_version
+  default_role_name = var.default_role_name
+  
+  # User data configuration
+  enable_user_data_template = var.enable_user_data_template
+  user_data_template_path = var.user_data_template_path
+  user_data = var.user_data
+  user_data_base64 = var.user_data_base64
+  user_data_replace_on_change = var.user_data_replace_on_change
+}
+EOF
+
+# Create variables.tf file
+echo "📋 Creating variables.tf file..."
+cat > "$INPUT_DIR/variables.tf" << 'EOF'
+# Variables for the wrapper module
+variable "aws_region" {
+  description = "AWS region where resources will be created"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name (e.g., dev, staging, prod)"
+  type        = string
+}
+
+variable "project_name" {
+  description = "Project name for tagging"
+  type        = string
+}
+
+variable "instances" {
+  description = "Map of instance configurations"
+  type        = any
+}
+
+variable "global_settings" {
+  description = "Global settings that apply to all instances"
+  type        = any
+  default     = {}
+}
+
+# Security Group variables
+variable "create_security_group" {
+  description = "Determines whether a security group will be created"
+  type        = bool
+  default     = false
+}
+
+variable "security_group_name" {
+  description = "Name to use on security group created"
+  type        = string
+  default     = null
+}
+
+variable "security_group_use_name_prefix" {
+  description = "Determines whether the security group name is used as a prefix"
+  type        = bool
+  default     = true
+}
+
+variable "security_group_description" {
+  description = "Description of the security group"
+  type        = string
+  default     = null
+}
+
+variable "security_group_vpc_id" {
+  description = "VPC ID to create the security group in"
+  type        = string
+  default     = null
+}
+
+variable "security_group_ingress_rules" {
+  description = "Ingress rules to add to the security group"
+  type        = any
+  default     = null
+}
+
+variable "security_group_egress_rules" {
+  description = "Egress rules to add to the security group"
+  type        = any
+  default     = {}
+}
+
+# IAM variables
+variable "iam_role_name" {
+  description = "Name to use on IAM role created"
+  type        = string
+  default     = null
+}
+
+variable "iam_role_use_name_prefix" {
+  description = "Determines whether the IAM role name is used as a prefix"
+  type        = bool
+  default     = true
+}
+
+variable "iam_role_description" {
+  description = "Description of the role"
+  type        = string
+  default     = null
+}
+
+# Monitoring variables
+variable "enable_monitoring_module" {
+  description = "Enable monitoring module"
+  type        = bool
+  default     = false
+}
+
+variable "monitoring" {
+  description = "Monitoring configuration"
+  type        = any
+  default     = {}
+}
+
+# Logging variables
+variable "enable_logging_module" {
+  description = "Enable logging module"
+  type        = bool
+  default     = false
+}
+
+variable "logging" {
+  description = "Logging configuration"
+  type        = any
+  default     = {}
+}
+
+# System tags variables
+variable "managed_by_tag" {
+  description = "Managed by tag"
+  type        = string
+  default     = "terraform"
+}
+
+variable "feature_tag" {
+  description = "Feature tag"
+  type        = string
+  default     = "adaptive-iam"
+}
+
+variable "ec2_service_principal" {
+  description = "EC2 service principal"
+  type        = string
+  default     = "ec2.amazonaws.com"
+}
+
+variable "assume_role_policy_version" {
+  description = "Assume role policy version"
+  type        = string
+  default     = "2012-10-17"
+}
+
+variable "default_role_name" {
+  description = "Default role name"
+  type        = string
+  default     = "default"
+}
+
+# User data variables
+variable "enable_user_data_template" {
+  description = "Whether to use a user data template file"
+  type        = bool
+  default     = false
+}
+
+variable "user_data_template_path" {
+  description = "Path to the user data template file"
+  type        = string
+  default     = null
+}
+
+variable "user_data" {
+  description = "User data script"
+  type        = string
+  default     = null
+}
+
+variable "user_data_base64" {
+  description = "User data script (base64 encoded)"
+  type        = string
+  default     = null
+}
+
+variable "user_data_replace_on_change" {
+  description = "Whether to replace user data on change"
+  type        = bool
+  default     = false
+}
+EOF
+
+# Create outputs.tf file
+echo "📋 Creating outputs.tf file..."
+cat > "$INPUT_DIR/outputs.tf" << 'EOF'
+# Outputs from the wrapper module
+output "instance_ids" {
+  description = "List of instance IDs"
+  value       = module.ec2_wrapper.instance_ids
+}
+
+output "instance_arns" {
+  description = "List of instance ARNs"
+  value       = module.ec2_wrapper.instance_arns
+}
+
+output "instance_public_ips" {
+  description = "List of public IP addresses"
+  value       = module.ec2_wrapper.instance_public_ips
+}
+
+output "instance_private_ips" {
+  description = "List of private IP addresses"
+  value       = module.ec2_wrapper.instance_private_ips
+}
+
+output "security_group_ids" {
+  description = "List of security group IDs"
+  value       = module.ec2_wrapper.security_group_ids
+}
+
+output "iam_role_arns" {
+  description = "List of IAM role ARNs"
+  value       = module.ec2_wrapper.iam_role_arns
+}
+
+output "iam_instance_profile_arns" {
+  description = "List of IAM instance profile ARNs"
+  value       = module.ec2_wrapper.iam_instance_profile_arns
+}
+EOF
 
 # Create main terraform.tfvars
 echo "⚙️ Creating main terraform.tfvars..."
@@ -634,6 +901,9 @@ This directory contains your Terraform configuration files for deploying EC2 ins
 \`\`\`
 $INPUT_DIR/
 ├── README.md                    # This file
+├── main.tf                     # References the wrapper module
+├── variables.tf                # Variable definitions
+├── outputs.tf                  # Output definitions
 ├── terraform.tfvars            # Your main configuration file
 ├── environments/               # Environment-specific configurations
 │   ├── dev/
@@ -689,6 +959,9 @@ echo "3. Run the GitHub Action with user input directory: $INPUT_DIR"
 echo ""
 echo "📁 Created directory structure:"
 echo "  $INPUT_DIR/"
+echo "  ├── main.tf (references wrapper module)"
+echo "  ├── variables.tf"
+echo "  ├── outputs.tf"
 echo "  ├── terraform.tfvars"
 echo "  ├── environments/dev/terraform.tfvars"
 echo "  ├── environments/prod/terraform.tfvars"
@@ -700,6 +973,7 @@ echo "  ✅ IAM role name: iam-role (no prefixes/suffixes)"
 echo "  ✅ VPC ID set to vpc-3d80a556"
 echo "  ✅ Subnet ID set to subnet-a65c14eb"
 echo "  ✅ No key pairs required - SSM access only"
+echo "  ✅ Proper Terraform module structure"
 echo ""
 echo "🔧 To customize further, edit the configuration files and refer to:"
 echo "  - GITHUB_ACTION_SETUP.md for detailed instructions"
