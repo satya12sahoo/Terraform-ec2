@@ -378,6 +378,31 @@ If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI 
 - **Launch template**: to inherit from an existing launch template, set **launch_template = { id/name, version }`. Values set in the module take precedence over the template.
 - **Security group rules**: when the module creates the SG, set maps **security_group_ingress_rules** and/or **security_group_egress_rules** (defaults allow all egress IPv4/IPv6).
 
+### Inputs by function
+
+- General
+  - `create`, `name`, `region`, `tags`, `instance_tags`, `timeouts`, `putin_khuylo`
+- AMI and image strategy
+  - `ami`, `ami_ssm_parameter`, `ignore_ami_changes`
+- Instance runtime and behavior
+  - `instance_type`, `availability_zone`, `key_name`, `cpu_options`, `cpu_credits`, `monitoring`, `disable_api_termination`, `disable_api_stop`, `hibernation`, `metadata_options`, `maintenance_options`, `private_dns_name_options`, `tenancy`, `get_password_data`, `host_id`, `host_resource_group_arn`, `placement_group`, `placement_partition_number`, `enclave_options_enabled`, `enable_primary_ipv6`
+- Networking
+  - `subnet_id`, `associate_public_ip_address`, `vpc_security_group_ids`, `network_interface`, `ipv6_address_count`, `ipv6_addresses`, `private_ip`, `secondary_private_ips`, `source_dest_check`
+- Security group (module-managed)
+  - `create_security_group`, `security_group_name`, `security_group_use_name_prefix`, `security_group_description`, `security_group_vpc_id`, `security_group_tags`, `security_group_ingress_rules`, `security_group_egress_rules`
+- IAM and instance profile
+  - `create_iam_instance_profile`, `iam_instance_profile`, `iam_role_name`, `iam_role_use_name_prefix`, `iam_role_path`, `iam_role_description`, `iam_role_permissions_boundary`, `iam_role_policies`, `iam_role_tags`
+- Storage (root and additional EBS)
+  - `root_block_device`, `ebs_volumes`, `volume_tags`, `enable_volume_tags`, `ebs_optimized`
+- Spot and market options
+  - `create_spot_instance`, `instance_market_options`, `spot_price`, `spot_type`, `spot_launch_group`, `spot_instance_interruption_behavior`, `spot_wait_for_fulfillment`, `spot_valid_from`, `spot_valid_until`
+- Launch template passthrough
+  - `launch_template`
+- Elastic IP
+  - `create_eip`, `eip_domain`, `eip_tags` (only for non-Spot usage)
+- User data
+  - `user_data`, `user_data_base64`, `user_data_replace_on_change`
+
 ### Minimal configurations by scenario
 
 - **Private instance (no public internet)**:
@@ -398,33 +423,73 @@ If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI 
 
 ```mermaid
 flowchart TD
-  A[Decide instance characteristics] --> B{Spot instance?}
-  B -- Yes --> B1[Set create_spot_instance=true and optionally spot_*]
-  B -- No --> C{Provide AMI?}
-  C -- Provide AMI ID --> C1[Set ami]
-  C -- Use default AL2023 via SSM --> C2[Keep ami null; ami_ssm_parameter default]
-  C1 --> D{Networking}
-  C2 --> D{Networking}
-  D --> D1[Set subnet_id]
-  D --> D2{Need public access?}
-  D2 -- Yes --> D2a[associate_public_ip_address=true or create_eip=true]
-  D2 -- No --> D2b[Keep defaults]
-  D --> D3{Use existing SGs?}
-  D3 -- Yes --> D3a[Set vpc_security_group_ids]
-  D3 -- No --> D3b[create_security_group=true; set security_group_ingress_rules]
-  D --> E{SSH access?}
-  E -- Yes --> E1[Set key_name and allow 22/tcp]
-  E -- No --> E2[Use Session Manager IAM role]
-  D --> F{IAM needed?}
-  F -- Yes --> F1[create_iam_instance_profile=true; iam_role_*]
-  F -- No --> G
-  D --> G{Storage}
-  G --> G1[Optional root_block_device settings]
-  G --> G2[Optional ebs_volumes map]
-  G --> H{User data?}
-  H -- Yes --> H1[user_data or user_data_base64; user_data_replace_on_change]
-  H -- No --> I
-  I[Apply: terraform init → plan → apply]
+  A[Start] --> G{create && putin_khuylo?}
+  G -- No --> Z[Stop: module gated]
+  G -- Yes --> B{instance_market_options set?}
+  B -- Yes --> B1[Use instance_market_options (Spot/Market)]
+  B -- No --> B2{create_spot_instance?}
+  B2 -- Yes --> B2a[Create Spot request-backed instance]
+  B2 -- No --> B2b[Create On-Demand instance]
+
+  %% AMI strategy
+  B1 --> C{Provide AMI?}
+  B2a --> C
+  B2b --> C
+  C -- Yes --> C1[Set ami]
+  C -- No --> C2[Use SSM ami_ssm_parameter (AL2023 default)]
+  C1 --> C3{ignore_ami_changes?}
+  C2 --> C3
+  C3 -- Yes --> C3a[Use ignore_ami resource (no AMI drift replacements)]
+  C3 -- No --> D
+
+  %% Launch template
+  D{Launch template provided?} -- Yes --> D1[Set launch_template; module inputs override LT]
+  D -- No --> E
+
+  %% Networking selection
+  E{Provide network_interface map?}
+  E -- Yes --> E1[Attach NIs at boot]
+  E1 --> E1note[Do not set subnet_id, vpc_security_group_ids, associate_public_ip_address]
+  E -- No --> N[Standard networking]
+  N --> N1[Set subnet_id]
+  N --> N2{Need public access?}
+  N2 -- Yes --> N2a[associate_public_ip_address=true]
+  N2 -- No --> N2b[Keep default]
+  N --> N3{Create SG?}
+  N3 -- Yes --> N3a[create_security_group=true; set ingress/egress rule maps]
+  N3 -- No --> N3b[Use vpc_security_group_ids]
+
+  %% Elastic IP (non-Spot only)
+  N2 --> P{Non-Spot?}
+  P -- Yes --> P1{Need static IP?}
+  P1 -- Yes --> P1a[create_eip=true; eip_tags]
+  P1 -- No --> Q
+  P -- No --> Q
+
+  %% IAM
+  Q --> F{IAM profile needed?}
+  F -- Yes --> F1[create_iam_instance_profile=true; iam_role_*; iam_role_policies]
+  F -- No --> F2[Provide iam_instance_profile if reusing]
+
+  %% Storage
+  F1 --> S[Storage]
+  F2 --> S
+  S --> S1[Optional root_block_device settings]
+  S --> S2[Optional ebs_volumes map; Name tag includes var.name]
+
+  %% Other behavior
+  S --> O[Other options]
+  O --> O1[metadata_options (IMDSv2 by default)]
+  O --> O2[CPU credits apply to t-class only]
+  O --> O3[monitoring, hibernation, tenancy, maintenance_options]
+  O --> U{User data?}
+  U -- Yes --> U1[user_data or user_data_base64]
+  U1 --> U2{Replace on change?}
+  U2 -- Yes --> U2a[user_data_replace_on_change=true]
+  U2 -- No --> V
+  U -- No --> V
+
+  V[Apply: terraform init → plan → apply]
 ```
 
 <!-- BEGIN_TF_DOCS -->
