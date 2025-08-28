@@ -15,6 +15,91 @@ This wrapper consumes the root EC2 module in this repository and lets you define
 - putin_khuylo (bool)
   - Required flag from the root module; default true.
 
+### Inputs table (base module compatible)
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| create | bool | true | Whether to create an instance |
+| name | string | "" | Name to be used on EC2 instance created |
+| region | string | null | Region where the resource(s) will be managed |
+| ami | string | null | ID of AMI to use for the instance |
+| ami_ssm_parameter | string | "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64" | SSM parameter name for the AMI ID |
+| ignore_ami_changes | bool | false | Ignore AMI ID changes (forces replace if toggled) |
+| associate_public_ip_address | bool | null | Associate a public IP in a VPC |
+| availability_zone | string | null | AZ to start the instance in |
+| capacity_reservation_specification | object | null | Capacity Reservation targeting options |
+| cpu_options | object | null | CPU options (core_count, threads_per_core, amd_sev_snp) |
+| cpu_credits | string | null | CPU credit option for T-family |
+| disable_api_termination | bool | null | Enable termination protection |
+| disable_api_stop | bool | null | Enable stop protection |
+| ebs_optimized | bool | null | Launch as EBS-optimized |
+| enclave_options_enabled | bool | null | Enable Nitro Enclaves |
+| enable_primary_ipv6 | bool | null | Assign primary IPv6 GUA in dual-stack/IPv6-only subnets |
+| ephemeral_block_device | map(object) | null | Instance store volume settings |
+| get_password_data | bool | null | Wait for and retrieve Windows password data |
+| hibernation | bool | null | Enable instance hibernation |
+| host_id | string | null | Dedicated host ID to place the instance on |
+| host_resource_group_arn | string | null | Host resource group ARN (tenancy host) |
+| iam_instance_profile | string | null | Existing IAM instance profile name |
+| instance_initiated_shutdown_behavior | string | null | Shutdown behavior (stop/terminate) |
+| instance_market_options | object | null | Market options; overrides create_spot_instance |
+| instance_type | string | "t3.micro" | Instance type |
+| ipv6_address_count | number | null | Number of IPv6 addresses to assign |
+| ipv6_addresses | list(string) | null | Specific IPv6 addresses to assign |
+| key_name | string | null | SSH key pair name |
+| launch_template | object | null | Launch template (id/name/version) |
+| maintenance_options | object | null | Maintenance options (auto_recovery) |
+| metadata_options | object | {http_endpoint="enabled", http_put_response_hop_limit=1, http_tokens="required"} | Instance metadata service options |
+| monitoring | bool | null | Enable detailed CloudWatch monitoring |
+| network_interface | map(object) | null | Attach pre-existing ENIs at boot |
+| placement_group | string | null | Placement group name |
+| placement_partition_number | number | null | Partition number (partition strategy) |
+| private_dns_name_options | object | null | Private DNS options (A/AAAA records, hostname_type) |
+| private_ip | string | null | Primary private IPv4 address |
+| root_block_device | object | null | Root volume configuration (size, type, iops, kms, tags) |
+| secondary_private_ips | list(string) | null | Secondary private IPv4 addresses on eth0 |
+| source_dest_check | bool | null | Disable for NAT/VPN use cases |
+| subnet_id | string | null | Subnet ID to launch in |
+| tags | map(string) | {} | Resource tags |
+| instance_tags | map(string) | {} | Additional instance-only tags |
+| tenancy | string | null | Tenancy: default, dedicated, or host |
+| user_data | string | null | Plain-text user data script |
+| user_data_base64 | string | null | Base64-encoded user data |
+| user_data_replace_on_change | bool | null | Force recreate when user data changes |
+| volume_tags | map(string) | {} | Tags for volumes created at launch |
+| enable_volume_tags | bool | true | Enable volume tags (conflicts with root_block_device.tags) |
+| vpc_security_group_ids | list(string) | [] | Security group IDs to attach |
+| timeouts | map(string) | {} | Create/update/delete timeouts |
+| create_spot_instance | bool | false | Create a Spot instance request |
+| spot_instance_interruption_behavior | string | null | Spot interruption behavior (terminate/stop/hibernate) |
+| spot_launch_group | string | null | Spot launch group |
+| spot_price | string | null | Max Spot price (defaults to on-demand) |
+| spot_type | string | null | Spot request type (persistent/one-time) |
+| spot_wait_for_fulfillment | bool | null | Wait for fulfillment (10m timeout) |
+| spot_valid_from | string | null | Spot request start time (RFC3339) |
+| spot_valid_until | string | null | Spot request end time (RFC3339) |
+| ebs_volumes | map(object) | null | Additional EBS volumes and attachments |
+| create_iam_instance_profile | bool | false | Create IAM instance profile and role |
+| iam_role_name | string | null | Name for role when creating |
+| iam_role_use_name_prefix | bool | true | Use name as prefix for role |
+| iam_role_path | string | null | Role path |
+| iam_role_description | string | null | Role description |
+| iam_role_permissions_boundary | string | null | Permissions boundary ARN |
+| iam_role_policies | map(string) | {} | Inline/managed policies to attach |
+| iam_role_tags | map(string) | {} | Additional tags for role/profile |
+| create_security_group | bool | true | Create a security group |
+| security_group_name | string | null | Security group name |
+| security_group_use_name_prefix | bool | true | Use name as prefix for SG |
+| security_group_description | string | null | Security group description |
+| security_group_vpc_id | string | null | VPC ID for security group (default VPC if null) |
+| security_group_tags | map(string) | {} | Additional tags for security group |
+| security_group_egress_rules | map(object) | see default | Egress rules; defaults allow all IPv4/IPv6 |
+| security_group_ingress_rules | map(object) | null | Ingress rules |
+| create_eip | bool | false | Create and associate an Elastic IP |
+| eip_domain | string | "vpc" | EIP domain (vpc) |
+| eip_tags | map(string) | {} | Tags for EIP |
+| putin_khuylo | bool | true | Required confirmation flag |
+
 ### Outputs
 
 - instances (map(object))
