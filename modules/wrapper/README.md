@@ -1,436 +1,331 @@
-### Wrapper module for creating multiple EC2 instances using for_each
+# EC2-Instance Module
 
-### Overview
+This module wraps the [EC2 instance base module] . and allows you to create **multiple EC2 instances** with shared defaults and per-instance overrides.
 
-This wrapper consumes the root EC2 module in this repository and lets you define many instances at once via a single map variable. It shallow-merges an optional defaults map into each instance, so you can avoid repeating common settings.
+It uses a **two-level input pattern**:
 
-### Inputs
+* `defaults` → global baseline values for all instances
+* `ec2instance` → map of instance-specific configurations (overrides `defaults`)
 
-- instances (map(any))
-  - Keyed by instance key. Each value is a map of base module inputs for that instance. Provide only what you need.
+---
 
-- defaults (any)
-  - A map merged into every instance value (instance-specific values win). Useful for setting common region, subnet_id, tags, etc.
-
-- putin_khuylo (bool)
-  - Required flag from the root module; default true.
-
-### Inputs table (base module compatible)
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
-| create | bool | true | Whether to create an instance |
-| name | string | "" | Name to be used on EC2 instance created |
-| region | string | null | Region where the resource(s) will be managed |
-| ami | string | null | ID of AMI to use for the instance |
-| ami_ssm_parameter | string | "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64" | SSM parameter name for the AMI ID |
-| ignore_ami_changes | bool | false | Ignore AMI ID changes (forces replace if toggled) |
-| associate_public_ip_address | bool | null | Associate a public IP in a VPC |
-| availability_zone | string | null | AZ to start the instance in |
-| capacity_reservation_specification | object | null | Capacity Reservation targeting options |
-| cpu_options | object | null | CPU options (core_count, threads_per_core, amd_sev_snp) |
-| cpu_credits | string | null | CPU credit option for T-family |
-| disable_api_termination | bool | null | Enable termination protection |
-| disable_api_stop | bool | null | Enable stop protection |
-| ebs_optimized | bool | null | Launch as EBS-optimized |
-| enclave_options_enabled | bool | null | Enable Nitro Enclaves |
-| enable_primary_ipv6 | bool | null | Assign primary IPv6 GUA in dual-stack/IPv6-only subnets |
-| ephemeral_block_device | map(object) | null | Instance store volume settings |
-| get_password_data | bool | null | Wait for and retrieve Windows password data |
-| hibernation | bool | null | Enable instance hibernation |
-| host_id | string | null | Dedicated host ID to place the instance on |
-| host_resource_group_arn | string | null | Host resource group ARN (tenancy host) |
-| iam_instance_profile | string | null | Existing IAM instance profile name |
-| instance_initiated_shutdown_behavior | string | null | Shutdown behavior (stop/terminate) |
-| instance_market_options | object | null | Market options; overrides create_spot_instance |
-| instance_type | string | "t3.micro" | Instance type |
-| ipv6_address_count | number | null | Number of IPv6 addresses to assign |
-| ipv6_addresses | list(string) | null | Specific IPv6 addresses to assign |
-| key_name | string | null | SSH key pair name |
-| launch_template | object | null | Launch template (id/name/version) |
-| maintenance_options | object | null | Maintenance options (auto_recovery) |
-| metadata_options | object | {http_endpoint="enabled", http_put_response_hop_limit=1, http_tokens="required"} | Instance metadata service options |
-| monitoring | bool | null | Enable detailed CloudWatch monitoring |
-| network_interface | map(object) | null | Attach pre-existing ENIs at boot |
-| placement_group | string | null | Placement group name |
-| placement_partition_number | number | null | Partition number (partition strategy) |
-| private_dns_name_options | object | null | Private DNS options (A/AAAA records, hostname_type) |
-| private_ip | string | null | Primary private IPv4 address |
-| root_block_device | object | null | Root volume configuration (size, type, iops, kms, tags) |
-| secondary_private_ips | list(string) | null | Secondary private IPv4 addresses on eth0 |
-| source_dest_check | bool | null | Disable for NAT/VPN use cases |
-| subnet_id | string | null | Subnet ID to launch in |
-| tags | map(string) | {} | Resource tags |
-| instance_tags | map(string) | {} | Additional instance-only tags |
-| tenancy | string | null | Tenancy: default, dedicated, or host |
-| user_data | string | null | Plain-text user data script |
-| user_data_base64 | string | null | Base64-encoded user data |
-| user_data_replace_on_change | bool | null | Force recreate when user data changes |
-| volume_tags | map(string) | {} | Tags for volumes created at launch |
-| enable_volume_tags | bool | true | Enable volume tags (conflicts with root_block_device.tags) |
-| vpc_security_group_ids | list(string) | [] | Security group IDs to attach |
-| timeouts | map(string) | {} | Create/update/delete timeouts |
-| create_spot_instance | bool | false | Create a Spot instance request |
-| spot_instance_interruption_behavior | string | null | Spot interruption behavior (terminate/stop/hibernate) |
-| spot_launch_group | string | null | Spot launch group |
-| spot_price | string | null | Max Spot price (defaults to on-demand) |
-| spot_type | string | null | Spot request type (persistent/one-time) |
-| spot_wait_for_fulfillment | bool | null | Wait for fulfillment (10m timeout) |
-| spot_valid_from | string | null | Spot request start time (RFC3339) |
-| spot_valid_until | string | null | Spot request end time (RFC3339) |
-| ebs_volumes | map(object) | null | Additional EBS volumes and attachments |
-| create_iam_instance_profile | bool | false | Create IAM instance profile and role |
-| iam_role_name | string | null | Name for role when creating |
-| iam_role_use_name_prefix | bool | true | Use name as prefix for role |
-| iam_role_path | string | null | Role path |
-| iam_role_description | string | null | Role description |
-| iam_role_permissions_boundary | string | null | Permissions boundary ARN |
-| iam_role_policies | map(string) | {} | Inline/managed policies to attach |
-| iam_role_tags | map(string) | {} | Additional tags for role/profile |
-| create_security_group | bool | true | Create a security group |
-| security_group_name | string | null | Security group name |
-| security_group_use_name_prefix | bool | true | Use name as prefix for SG |
-| security_group_description | string | null | Security group description |
-| security_group_vpc_id | string | null | VPC ID for security group (default VPC if null) |
-| security_group_tags | map(string) | {} | Additional tags for security group |
-| security_group_egress_rules | map(object) | see default | Egress rules; defaults allow all IPv4/IPv6 |
-| security_group_ingress_rules | map(object) | null | Ingress rules |
-| create_eip | bool | false | Create and associate an Elastic IP |
-| eip_domain | string | "vpc" | EIP domain (vpc) |
-| eip_tags | map(string) | {} | Tags for EIP |
-| putin_khuylo | bool | true | Required confirmation flag |
-
-### Map-typed inputs and schemas
-
-- instances (map(any))
-  - Keyed by instance key. Each value is a map of base module inputs for that instance.
-
-- defaults (map)
-  - Shallow-merged into each instance before applying. Per-instance values override defaults.
-
-- tags (map(string)) / instance_tags (map(string)) / volume_tags (map(string)) / security_group_tags (map(string)) / eip_tags (map(string)) / iam_role_tags (map(string))
-  - Key-value tags. Values must be strings.
-
-- iam_role_policies (map(string))
-  - Map of policy_name => policy_arn to attach to the created role.
-
-- timeouts (map(string))
-  - Keys: `create`, `update`, `delete`. Values are duration strings, e.g., "30m".
-
-- ebs_volumes (map(object))
-  - Keyed by a logical volume name; value schema:
-    - encrypted (bool), final_snapshot (bool), iops (number), kms_key_id (string), multi_attach_enabled (bool), outpost_arn (string), size (number), snapshot_id (string), throughput (number), type (string, default "gp3")
-    - tags (map(string), default {})
-    - Attachment: device_name (string, optional; defaults to map key), force_detach (bool), skip_destroy (bool), stop_instance_before_detaching (bool)
-
-- network_interface (map(object))
-  - Keyed by device key; value schema:
-    - network_interface_id (string)
-    - delete_on_termination (bool), device_index (number; defaults to map key index), network_card_index (number)
-
-- security_group_egress_rules (map(object)) and security_group_ingress_rules (map(object))
-  - Keyed by rule name; value schema:
-    - cidr_ipv4 (string), cidr_ipv6 (string), description (string), from_port (number), to_port (number), ip_protocol (string, default "tcp"), prefix_list_id (string), referenced_security_group_id (string), tags (map(string), default {})
-  - Egress rules default to allow all IPv4/IPv6 if not specified.
-
-### Complex object inputs
-
-Capacity reservation specification (`capacity_reservation_specification`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| capacity_reservation_preference | string |  | Preference for capacity reservation |
-| capacity_reservation_target.capacity_reservation_id | string |  | Target Capacity Reservation ID |
-| capacity_reservation_target.capacity_reservation_resource_group_arn | string |  | Capacity Reservation resource group ARN |
-
-Example
+## Usage
 
 ```hcl
-capacity_reservation_specification = {
-  capacity_reservation_preference = "open"
-  capacity_reservation_target = {
-    capacity_reservation_id = "cr-0123456789abcdef0"
-  }
-}
-```
-
-CPU options (`cpu_options`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| amd_sev_snp | string |  | AMD SEV-SNP setting |
-| core_count | number |  | Number of CPU cores |
-| threads_per_core | number |  | Threads per core |
-
-Example
-
-```hcl
-cpu_options = {
-  core_count       = 2
-  threads_per_core = 2
-}
-```
-
-Instance market options (`instance_market_options`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| market_type | string |  | Market type (e.g., "spot") |
-| spot_options.instance_interruption_behavior | string |  | Spot interruption behavior |
-| spot_options.max_price | string |  | Max spot price |
-| spot_options.spot_instance_type | string |  | Spot instance type |
-| spot_options.valid_until | string |  | Valid until timestamp |
-
-Example
-
-```hcl
-instance_market_options = {
-  market_type = "spot"
-  spot_options = {
-    instance_interruption_behavior = "stop"
-    max_price                      = "0.015"
-    spot_instance_type             = "one-time"
-  }
-}
-```
-
-Launch template (`launch_template`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| id | string |  | Launch template ID |
-| name | string |  | Launch template name |
-| version | string |  | Launch template version |
-
-Example
-
-```hcl
-launch_template = {
-  name    = "lt-web"
-  version = "$Latest"
-}
-```
-
-Maintenance options (`maintenance_options`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| auto_recovery | string |  | Auto recovery setting |
-
-Example
-
-```hcl
-maintenance_options = {
-  auto_recovery = "default"
-}
-```
-
-Metadata options (`metadata_options`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| http_endpoint | string | "enabled" | IMDS endpoint state |
-| http_protocol_ipv6 | string |  | IMDS IPv6 |
-| http_put_response_hop_limit | number | 1 | IMDS hop limit |
-| http_tokens | string | "required" | IMDSv2 token requirement |
-| instance_metadata_tags | string |  | Expose tags to IMDS |
-
-Example
-
-```hcl
-metadata_options = {
-  http_endpoint               = "enabled"
-  http_tokens                 = "required"
-  http_put_response_hop_limit = 2
-}
-```
-
-Private DNS name options (`private_dns_name_options`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| enable_resource_name_dns_a_record | bool |  | Enable A record |
-| enable_resource_name_dns_aaaa_record | bool |  | Enable AAAA record |
-| hostname_type | string |  | Resource name DNS hostname type |
-
-Example
-
-```hcl
-private_dns_name_options = {
-  enable_resource_name_dns_a_record    = true
-  enable_resource_name_dns_aaaa_record = false
-  hostname_type                        = "resource-name"
-}
-```
-
-Root block device (`root_block_device`)
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| delete_on_termination | bool |  | Delete on termination |
-| encrypted | bool |  | Encrypted |
-| iops | number |  | Provisioned IOPS |
-| kms_key_id | string |  | KMS key for encryption |
-| throughput | number |  | Throughput (MiB/s) |
-| size | number |  | Volume size (GiB) |
-| type | string |  | Volume type (e.g., gp3) |
-| tags | map(string) |  | Tags for the root volume |
-
-Example
-
-```hcl
-root_block_device = {
-  size = 20
-  type = "gp3"
-  iops = 3000
-}
-```
-
-### Conditional inputs and behavior
-
-- IAM profile creation
-  - Set `create_iam_instance_profile = true` to use IAM role inputs (`iam_role_*`, `iam_role_policies`, `iam_role_tags`).
-  - Otherwise provide `iam_instance_profile` to use an existing profile.
-
-- Security group creation
-  - Set `create_security_group = true` to use `security_group_*` and rule maps.
-  - If false, provide `vpc_security_group_ids` instead.
-
-- Elastic IP
-  - Set `create_eip = true` to use `eip_domain` and `eip_tags`.
-
-- Spot instances
-  - Set `create_spot_instance = true` to use `spot_*` inputs. If `instance_market_options` is set, it overrides `create_spot_instance`.
-
-- Volume tags vs root block device tags
-  - `enable_volume_tags = true` applies `volume_tags` to launch-created volumes but conflicts with `root_block_device.tags`.
-
-- ENIs vs SGs and source/dest check
-  - When `network_interface` is set, `vpc_security_group_ids` and `source_dest_check` on the instance are not used. Manage those on the ENI.
-
-### Additional examples
-
-EBS volumes (continued) — full map example
-
-```hcl
-ebs_volumes = {
-  logs = {
-    size   = 100
-    type   = "gp3"
-    iops   = 3000
-    throughput = 125
-    tags   = { Name = "app-logs" }
-    device_name = "/dev/sdk"
-  }
-}
-```
-
-Security group rules (ingress and egress)
-
-```hcl
-create_security_group = true
-security_group_ingress_rules = {
-  ssh = { from_port = 22, to_port = 22, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
-}
-security_group_egress_rules = {
-  all = { ip_protocol = "-1", cidr_ipv4 = "0.0.0.0/0" }
-}
-```
-
-Timeouts
-
-```hcl
-timeouts = { create = "30m", update = "30m", delete = "30m" }
-```
-
-### Outputs
-
-- instances (map(object))
-  - Map keyed by instance key with useful attributes: id, arn, instance_state, availability_zone, public_ip, private_ip, ipv6_addresses, tags_all, iam_role_name, iam_role_arn, iam_instance_profile_arn, iam_instance_profile_id, security_group_id, security_group_arn, root_block_device, ebs_block_device, ephemeral_block_device.
-
-### Usage
-
-Example using a tfvars file to define multiple instances. Fill values in your tfvars file and reference it when applying.
-
-Example
-
-```hcl
-module "ec2s" {
-  source = "../modules/wrapper"
-
-  putin_khuylo = true
+module "ec2_wrapper" {
+  source = "./modules/ec2-wrapper"
 
   defaults = {
-    region    = "us-east-1"
-    subnet_id = "subnet-xxxx"
+    instance_type = "t3.micro"
+    key_name      = "default-key"
+    subnet_id     = "subnet-123456"
     tags = {
-      Project = "demo"
+      Environment = "dev"
     }
   }
 
-  instances = var.instances
-}
-```
+  ec2instance = {
+    app1 = {
+      name          = "app-server"
+      instance_type = "t3.small"
+      user_data     = file("userdata.sh")
+      tags = {
+        Role = "app"
+      }
+    }
 
-Then in variables.tf at the caller level:
+    db1 = {
+      name          = "db-server"
+      instance_type = "t3.medium"
+      create_iam_instance_profile = true
+      ebs_volumes = {
+        data = {
+          size        = 50
+          type        = "gp3"
+          device_name = "/dev/sdh"
+        }
+      }
+      tags = {
+        Role = "database"
+      }
+    }
 
-```hcl
-variable "instances" {
-  description = "Instances map for wrapper"
-  type        = any
-}
-```
-
-And in your tfvars (e.g., terraform.tfvars):
-
-```hcl
-instances = {
-  web = {
-    name               = "web-1"
-    instance_type      = "t3.micro"
-    ami_ssm_parameter  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
-    create_security_group = true
+    spot1 = {
+      name                 = "spot-worker"
+      instance_type        = "t3.large"
+      create_spot_instance = true
+      spot_price           = "0.02"
+      tags = {
+        Role = "batch"
+      }
+    }
   }
-  worker = {
-    name               = "worker-1"
-    instance_type      = "t3.small"
+}
+```
+
+---
+
+## Wrapper Module Inputs
+
+These are **wrapper-level variables**:
+
+| Name       | Type     | Default | Description                                                                                           |
+| ---------- | -------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `defaults` | object   | `{}`    | Default values applied to all instances. Each key corresponds to a child module variable (see below). |
+| `ec2instance`    | map(any) | `{}`    | Map of EC2 instances to create. Each entry can override values from `defaults`.                       |
+
+---
+
+## Module Inputs
+
+The ec2instance modules passes all inputs through to the **child EC2 instance module**. Below is a categorized list of **all supported inputs**.
+
+---
+
+### General
+
+| Name                 | Type   | Default                                                                 | Description                   |
+| -------------------- | ------ | ----------------------------------------------------------------------- | ----------------------------- |
+| `create`             | bool   | `true`                                                                  | Whether to create an instance |
+| `name`               | string | `""`                                                                    | Name of the EC2 instance      |
+| `ami`                | string | `null`                                                                  | AMI ID to use                 |
+| `ami_ssm_parameter`  | string | `/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64` | SSM parameter name for AMI ID |
+| `ignore_ami_changes` | bool   | `false`                                                                 | Whether to ignore AMI changes |
+
+---
+
+### Networking
+
+| Name                          | Type         | Default | Description                                       |
+| ----------------------------- | ------------ | ------- | ------------------------------------------------- |
+| `subnet_id`                   | string       | `null`  | VPC Subnet ID                                     |
+| `associate_public_ip_address` | bool         | `null`  | Assign a public IP address                        |
+| `private_ip`                  | string       | `null`  | Static private IP                                 |
+| `ipv6_address_count`          | number       | `null`  | Number of IPv6 addresses                          |
+| `ipv6_addresses`              | list(string) | `null`  | Custom IPv6 addresses                             |
+| `source_dest_check`           | bool         | `null`  | Enable/disable source/dest check (needed for NAT) |
+| `enable_primary_ipv6`         | bool         | `null`  | Assign a primary IPv6 GUA when in dual-stack/IPv6-only subnets. |
+| `network_interface`           | map(object)  | `null`  | Attach pre-existing ENIs or define advanced NIC configuration.  |
+| `secondary_private_ips`       | list(string) | `null`  | List of secondary IPv4 addresses for eth0.                      |
+| `placement_group`             | string       | `null`  | Launch instance into a Placement Group.                         |
+| `placement_partition_number`  | number       | `null`  | Partition number (if Placement Group strategy is `partition`).  |
+| `private_dns_name_options`    | object       | `null`  | Customize private DNS name records for the instance.            |
+| `vpc_security_group_ids`      | list(string) | `[]`    | List of SG IDs to associate with instead of creating a new SG.  |
+
+---
+
+### Instance Settings
+
+| Name                                   | Type   | Default    | Description                              |
+| -------------------------------------- | ------ | ---------- | ---------------------------------------- |
+| `instance_type`                        | string | `t3.micro` | EC2 instance type                        |
+| `availability_zone`                    | string | `null`     | Specific AZ to launch in                 |
+| `disable_api_termination`              | bool   | `null`     | Enable termination protection            |
+| `disable_api_stop`                     | bool   | `null`     | Enable stop protection                   |
+| `monitoring`                           | bool   | `null`     | Enable detailed monitoring               |
+| `instance_initiated_shutdown_behavior` | string | `null`     | Shutdown behavior (stop/terminate)       |
+| `hibernation`                          | bool   | `null`     | Enable hibernation                       |
+| `tenancy`                              | string | `null`     | Tenancy (`default`, `dedicated`, `host`) |
+
+---
+
+### Capacity & CPU
+
+| Name                                 | Type   | Default | Description                                                        |
+| ------------------------------------ | ------ | ------- | ------------------------------------------------------------------ |
+| `capacity_reservation_specification` | object | `null`  | Target a specific EC2 Capacity Reservation or group.               |
+| `cpu_credits`                        | string | `null`  | Credit option for T2/T3/T4g instances (`standard` or `unlimited`). |
+| `cpu_options`                        | object | `null`  | Configure CPU core count and threads per core.                     |
+
+---
+
+### Storage
+
+| Name                     | Type        | Default | Description                   |
+| ------------------------ | ----------- | ------- | ----------------------------- |
+| `root_block_device`      | object      | `null`  | Customize root volume         |
+| `ebs_optimized`          | bool        | `null`  | Launch EBS-optimized          |
+| `ebs_volumes`            | map(object) | `null`  | Additional EBS volumes        |
+| `ephemeral_block_device` | map(object) | `null`  | Instance store volumes        |
+| `volume_tags`            | map(string) | `{}`    | Tags for attached volumes     |
+| `enable_volume_tags`     | bool        | `true`  | Whether to enable volume tags |
+
+---
+
+### IAM
+
+| Name                            | Type        | Default | Description                   |
+| ------------------------------- | ----------- | ------- | ----------------------------- |
+| `create_iam_instance_profile`   | bool        | `false` | Whether to create IAM profile |
+| `iam_instance_profile`          | string      | `null`  | Existing IAM profile name     |
+| `iam_role_name`                 | string      | `null`  | IAM role name                 |
+| `iam_role_description`          | string      | `null`  | IAM role description          |
+| `iam_role_path`                 | string      | `null`  | IAM role path                 |
+| `iam_role_use_name_prefix`      | bool        | `true`  | Use name prefix for IAM role  |
+| `iam_role_permissions_boundary` | string      | `null`  | IAM role boundary policy ARN  |
+| `iam_role_policies`             | map(string) | `{}`    | IAM policies to attach        |
+| `iam_role_tags`                 | map(string) | `{}`    | Tags for IAM role             |
+| `existing_iam_role_name`                 | string | `null`    | Name of existing IAM role where  iam_instance_profile need to be created            |
+
+---
+
+### Security Groups
+
+| Name                             | Type        | Default   | Description            |
+| -------------------------------- | ----------- | --------- | ---------------------- |
+| `create_security_group`          | bool        | `true`    | Whether to create SG   |
+| `security_group_name`            | string      | `null`    | SG name                |
+| `security_group_description`     | string      | `null`    | SG description         |
+| `security_group_vpc_id`          | string      | `null`    | VPC ID for SG          |
+| `security_group_use_name_prefix` | bool        | `true`    | Use prefix for SG name |
+| `security_group_tags`            | map(string) | `{}`      | Tags for SG            |
+| `security_group_ingress_rules`   | map(object) | `null`    | Ingress rules          |
+| `security_group_egress_rules`    | map(object) | Allow all | Egress rules           |
+
+---
+
+
+### Host & Enclave
+
+| Name                      | Type   | Default | Description                                                                                   |
+| ------------------------- | ------ | ------- | --------------------------------------------------------------------------------------------- |
+| `enclave_options_enabled` | bool   | `null`  | Enable [Nitro Enclaves](https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave.html). |
+| `host_id`                 | string | `null`  | ID of dedicated host to pin the instance to.                                                  |
+| `host_resource_group_arn` | string | `null`  | ARN of host resource group (mutually exclusive with tenancy).                                 |
+
+---
+
+### Launch Templates & Market Options
+
+| Name                      | Type   | Default | Description                                                                   |
+| ------------------------- | ------ | ------- | ----------------------------------------------------------------------------- |
+| `launch_template`         | object | `null`  | Specify a Launch Template (ID, Name, Version). Overrides conflicting inputs.  |
+| `instance_market_options` | object | `null`  | Define instance purchasing market options (spot, capacity reservation, etc.). |
+
+---
+
+### Metadata & Maintenance
+
+| Name                  | Type   | Default                                                                                    | Description                                          |
+| --------------------- | ------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `maintenance_options` | object | `null`                                                                                     | Instance auto-recovery settings.                     |
+| `metadata_options`    | object | `{ http_endpoint = "enabled", http_put_response_hop_limit = 1, http_tokens = "required" }` | Configure IMDS (Instance Metadata Service) settings. |
+
+---
+
+### Spot Instances
+
+| Name                                  | Type   | Default | Description                                              |
+| ------------------------------------- | ------ | ------- | -------------------------------------------------------- |
+| `create_spot_instance`                | bool   | `false` | Launch as spot instance                                  |
+| `spot_price`                          | string | `null`  | Max spot price                                           |
+| `spot_type`                           | string | `null`  | `one-time` or `persistent`                               |
+| `spot_instance_interruption_behavior` | string | `null`  | Interruption behavior (`terminate`, `stop`, `hibernate`) |
+| `spot_wait_for_fulfillment`           | bool   | `null`  | Wait until request fulfilled                             |
+| `spot_valid_from`                     | string | `null`  | Start time for request                                   |
+| `spot_valid_until`                    | string | `null`  | End time for request                                     |
+| `spot_launch_group`                   | string | `null`  | Spot launch group name                                   |
+
+---
+
+### Elastic IP
+
+| Name         | Type        | Default | Description              |
+| ------------ | ----------- | ------- | ------------------------ |
+| `create_eip` | bool        | `false` | Create and associate EIP |
+| `eip_domain` | string      | `"vpc"` | EIP domain               |
+| `eip_tags`   | map(string) | `{}`    | Tags for EIP             |
+
+---
+
+### User Data
+
+| Name                          | Type   | Default | Description                        |
+| ----------------------------- | ------ | ------- | ---------------------------------- |
+| `user_data`                   | string | `null`  | User data script                   |
+| `user_data_base64`            | string | `null`  | Base64 user data                   |
+| `user_data_replace_on_change` | bool   | `null`  | Force recreate on user data change |
+
+
+---
+
+### Miscellaneous
+
+| Name                | Type        | Default | Description                                                      |
+| ------------------- | ----------- | ------- | ---------------------------------------------------------------- |
+| `get_password_data` | bool        | `null`  | Retrieve Windows admin password via EC2 metadata (Windows only). |
+| `tags`              | map(string) | `{}`    | Tags applied to the instance resource.                           |
+| `timeouts`          | map(string) | `{}`    | Custom timeouts for create/update/delete.                        |
+| `key_name`     | The key name of the Key Pair to use for the instance; if not specified, no key will be attached                | `string`      | `null`       |    no    |
+| `instance_tags` | Additional tags to assign **only** to the EC2 instance (not propagated to other resources like SGs or volumes) | `map(string)` | `{}`         |    no    |
+
+---
+
+## Additional Variables
+
+| Name                                 | Description                                                                                                    | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Default                                                                                                                                                                                                                        | Required |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------: |
+| capacity\_reservation\_specification | Describes an instance's Capacity Reservation targeting option                                                  | <pre>object({<br>  capacity\_reservation\_preference = optional(string)<br>  capacity\_reservation\_target = optional(object({<br>    capacity\_reservation\_id                 = optional(string)<br>    capacity\_reservation\_resource\_group\_arn = optional(string)<br>  }))<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `null`                                                                                                                                                                                                                         |    no    |
+| cpu\_options                         | Defines CPU options to apply to the instance at launch time                                                    | <pre>object({<br>  amd\_sev\_snp      = optional(string)<br>  core\_count       = optional(number)<br>  threads\_per\_core = optional(number)<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `null`                                                                                                                                                                                                                         |    no    |
+| ephemeral\_block\_device             | Customize Ephemeral (Instance Store) volumes on the instance                                                   | <pre>map(object({<br>  device\_name  = string<br>  no\_device    = optional(bool)<br>  virtual\_name = optional(string)<br>}))</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | `null`                                                                                                                                                                                                                         |    no    |
+| instance\_market\_options            | The market (purchasing) option for the instance. If set, overrides the `create_spot_instance` variable         | <pre>object({<br>  market\_type = optional(string)<br>  spot\_options = optional(object({<br>    instance\_interruption\_behavior = optional(string)<br>    max\_price                      = optional(string)<br>    spot\_instance\_type             = optional(string)<br>    valid\_until                    = optional(string)<br>  }))<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                     | `null`                                                                                                                                                                                                                         |    no    |
+| launch\_template                     | Specifies a Launch Template to configure the instance. Parameters configured here override the Launch Template | <pre>object({<br>  id      = optional(string)<br>  name    = optional(string)<br>  version = optional(string)<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `null`                                                                                                                                                                                                                         |    no    |
+| metadata\_options                    | Customize the metadata options of the instance                                                                 | <pre>object({<br>  http\_endpoint               = optional(string, "enabled")<br>  http\_protocol\_ipv6          = optional(string)<br>  http\_put\_response\_hop\_limit = optional(number, 1)<br>  http\_tokens                 = optional(string, "required")<br>  instance\_metadata\_tags      = optional(string)<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                                            | <pre>{<br>  http\_endpoint = "enabled"<br>  http\_put\_response\_hop\_limit = 1<br>  http\_tokens = "required"<br>}</pre>                                                                                                      |    no    |
+| network\_interface                   | Customize network interfaces to be attached at instance boot time                                              | <pre>map(object({<br>  delete\_on\_termination = optional(bool)<br>  device\_index          = optional(number)<br>  network\_card\_index    = optional(number)<br>  network\_interface\_id  = string<br>}))</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `null`                                                                                                                                                                                                                         |    no    |
+| private\_dns\_name\_options          | Customize the private DNS name options of the instance                                                         | <pre>object({<br>  enable\_resource\_name\_dns\_a\_record    = optional(bool)<br>  enable\_resource\_name\_dns\_aaaa\_record = optional(bool)<br>  hostname\_type                        = optional(string)<br>})</pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `null`                                                                                                                                                                                                                         |    no    |
+| root\_block\_device                  | Customize details about the root block device of the instance                                                  | <pre>object({<br>  delete\_on\_termination = optional(bool)<br>  encrypted             = optional(bool)<br>  iops                  = optional(number)<br>  kms\_key\_id            = optional(string)<br>  tags                  = optional(map(string))<br>  throughput            = optional(number)<br>  size                  = optional(number)<br>  type                  = optional(string)<br>})</pre>                                                                                                                                                                                                                                                                                                                                               | `null`                                                                                                                                                                                                                         |    no    |
+| ebs\_volumes                         | Additional EBS volumes to attach to the instance                                                               | <pre>map(object({<br>  encrypted            = optional(bool)<br>  final\_snapshot       = optional(bool)<br>  iops                 = optional(number)<br>  kms\_key\_id           = optional(string)<br>  multi\_attach\_enabled = optional(bool)<br>  outpost\_arn          = optional(string)<br>  size                 = optional(number)<br>  snapshot\_id          = optional(string)<br>  tags                 = optional(map(string), {})<br>  throughput           = optional(number)<br>  type                 = optional(string, "gp3")<br>  device\_name          = optional(string)<br>  force\_detach         = optional(bool)<br>  skip\_destroy         = optional(bool)<br>  stop\_instance\_before\_detaching = optional(bool)<br>}))</pre> | `null`                                                                                                                                                                                                                         |    no    |
+| security\_group\_egress\_rules       | Egress rules to add to the security group                                                                      | <pre>map(object({<br>  cidr\_ipv4                    = optional(string)<br>  cidr\_ipv6                    = optional(string)<br>  description                  = optional(string)<br>  from\_port                    = optional(number)<br>  ip\_protocol                  = optional(string, "tcp")<br>  prefix\_list\_id               = optional(string)<br>  referenced\_security\_group\_id = optional(string)<br>  tags                         = optional(map(string), {})<br>  to\_port                      = optional(number)<br>}))</pre>                                                                                                                                                                                                        | <pre>{<br>  ipv4\_default = { cidr\_ipv4="0.0.0.0/0", description="Allow all IPv4 traffic", ip\_protocol="-1" }<br>  ipv6\_default = { cidr\_ipv6="::/0", description="Allow all IPv6 traffic", ip\_protocol="-1" }<br>}</pre> |    no    |
+| security\_group\_ingress\_rules      | Ingress rules to add to the security group                                                                     | <pre>map(object({<br>  cidr\_ipv4                    = optional(string)<br>  cidr\_ipv6                    = optional(string)<br>  description                  = optional(string)<br>  from\_port                    = optional(number)<br>  ip\_protocol                  = optional(string, "tcp")<br>  prefix\_list\_id               = optional(string)<br>  referenced\_security\_group\_id = optional(string)<br>  tags                         = optional(map(string), {})<br>  to\_port                      = optional(number)<br>}))</pre>                                                                                                                                                                                                        | `null`                                                                                                                                                                                                                         |    no    |
+
+
+---
+
+## Outputs
+
+You can extend this wrapper to output attributes such as:
+
+* Instance ID(s)
+* Public IP(s)
+* Private IP(s)
+* Security Group IDs
+* IAM Role names
+
+---
+
+## Example Terraform.tfvars
+
+```hcl
+defaults = {
+  key_name      = "my-default-key"
+  instance_type = "t3.micro"
+  subnet_id     = "subnet-abc123"
+}
+
+ec2instance = {
+  app = {
+    name          = "app-server"
+    instance_type = "t3.small"
+    user_data     = file("app-init.sh")
+  }
+
+  db = {
+    name          = "db-server"
+    instance_type = "t3.medium"
+    ebs_volumes = {
+      data = {
+        size        = 50
+        type        = "gp3"
+        device_name = "/dev/sdh"
+      }
+    }
+  }
+
+  spot = {
+    name                 = "spot-worker"
+    instance_type        = "t3.large"
     create_spot_instance = true
-    spot_type          = "one-time"
+    spot_price           = "0.02"
   }
 }
 ```
-
-Apply with a tfvars file:
-
-```bash
-terraform init && terraform apply -var-file="examples/wrapper/terraform.tfvars" -auto-approve
-```
-
-### End‑user workflow
-
-- Define shared defaults in `defaults` (e.g., `region`, `subnet_id`, `tags`).
-- Define per-instance overrides in the `instances` map via tfvars. The wrapper forwards the entire base module surface area; provide only what you need.
-- Run Terraform with your tfvars file. Unspecified fields use base module defaults.
-
-### Notes
-
-- The wrapper now forwards the full set of inputs from the base module. Provide only what you need; unspecified values fall back to base module defaults.
-- See repository root README for detailed descriptions of each input.
-
-### Flow chart
-
-```mermaid
-flowchart TD
-  A["Caller tfvars: defaults + instances"] --> B["Wrapper locals: merge defaults into each instance"]
-  B --> C["for_each over instances"]
-  C --> D["Base EC2 module invocation"]
-  D --> E["Create Security Group (optional)"]
-  D --> F["Create IAM Role/Profile (optional)"]
-  D --> G["Create/Attach EBS volumes (optional)"]
-  D --> H["Create EIP (optional)"]
-  D --> I["Create EC2 or Spot Instance"]
-  I --> J["Outputs per instance"]
-  J --> K["Wrapper aggregated outputs (map by key)"]
-```
-
-
