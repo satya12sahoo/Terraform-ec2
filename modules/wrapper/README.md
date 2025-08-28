@@ -13,7 +13,7 @@ It uses a **two-level input pattern**:
 
 ```hcl
 module "ec2_wrapper" {
-  source = "./modules/ec2-wrapper"
+  source = "./modules/wrapper"
 
   defaults = {
     instance_type = "t3.micro"
@@ -165,7 +165,7 @@ The ec2instance modules passes all inputs through to the **child EC2 instance mo
 | `iam_role_permissions_boundary` | string      | `null`  | IAM role boundary policy ARN  |
 | `iam_role_policies`             | map(string) | `{}`    | IAM policies to attach        |
 | `iam_role_tags`                 | map(string) | `{}`    | Tags for IAM role             |
-| `existing_iam_role_name`                 | string | `null`    | Name of existing IAM role where  iam_instance_profile need to be created            |
+| `existing_iam_role_name`        | string | `null` | If set, wrapper will create an instance profile from this existing role via `modules/instance-profile-from-role` and pass it to the child EC2 module. This implicitly disables `create_iam_instance_profile` for that instance. |
 
 ---
 
@@ -210,6 +210,11 @@ The ec2instance modules passes all inputs through to the **child EC2 instance mo
 | --------------------- | ------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | `maintenance_options` | object | `null`                                                                                     | Instance auto-recovery settings.                     |
 | `metadata_options`    | object | `{ http_endpoint = "enabled", http_put_response_hop_limit = 1, http_tokens = "required" }` | Configure IMDS (Instance Metadata Service) settings. |
+
+Also forwarded:
+
+- `region` (string, default `null`): Region to use for resources
+- `enable_primary_ipv6` (bool, default `null`): Assign a primary IPv6 GUA on dual-stack/IPv6-only subnets
 
 ---
 
@@ -327,5 +332,46 @@ ec2instance = {
     create_spot_instance = true
     spot_price           = "0.02"
   }
+
+  # Example: use existing IAM role and let wrapper create an instance profile from it
+  with_existing_role = {
+    name                    = "web-with-existing-role"
+    existing_iam_role_name  = "my-existing-ec2-role"
+    # create_iam_instance_profile will be ignored/forced false for this item
+  }
 }
 ```
+
+---
+
+## How it works (flow)
+
+1. You pass two inputs to the wrapper:
+   - `defaults` (global baseline)
+   - `ec2instance` (map of instances with per-item overrides)
+2. For each `ec2instance["<name>"]` item:
+   - If `existing_iam_role_name` is set:
+     - Wrapper invokes child `modules/instance-profile-from-role` to create an `aws_iam_instance_profile` from that existing role.
+     - The created profile name is fed into the base EC2 module input `iam_instance_profile`.
+     - `create_iam_instance_profile` is forced to `false` for that item so the EC2 base module does not create another role/profile.
+   - Else:
+     - Wrapper forwards inputs to the base EC2 module. You may either:
+       - Set `create_iam_instance_profile = true` to have the base module create role and profile, or
+       - Provide `iam_instance_profile` to use an already-existing profile.
+   - All other inputs (e.g., `region`, networking, storage, SG rules, spot options) are forwarded with `each.value` overriding `defaults`.
+3. Wrapper outputs map to all child module outputs by key (e.g., `module.ec2_wrapper.wrapper["app"].id`).
+
+### Scenarios
+
+- Use base module to create role/profile:
+  - Set `create_iam_instance_profile = true`.
+  - Do not set `existing_iam_role_name`.
+
+- Use an existing instance profile directly:
+  - Set `iam_instance_profile = "existing-profile-name"`.
+  - Do not set `create_iam_instance_profile` or `existing_iam_role_name`.
+
+- Use an existing IAM role and let wrapper create an instance profile from it:
+  - Set `existing_iam_role_name = "my-existing-ec2-role"`.
+  - Wrapper creates the profile via the helper module and supplies it to EC2.
+  - No role is created in this path, only an instance profile that points to your role.

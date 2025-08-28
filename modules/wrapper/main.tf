@@ -1,3 +1,14 @@
+module "instance_profile" {
+  source   = "../instance-profile-from-role"
+  for_each = { for k, v in var.ec2instance : k => v if try(v.existing_iam_role_name, var.defaults.existing_iam_role_name, null) != null }
+
+  role_name       = try(each.value.existing_iam_role_name, var.defaults.existing_iam_role_name, null)
+  name            = try(each.value.name, var.defaults.name, "")
+  use_name_prefix = try(each.value.iam_role_use_name_prefix, var.defaults.iam_role_use_name_prefix, true)
+  path            = try(each.value.iam_role_path, var.defaults.iam_role_path, null)
+  tags            = merge(try(each.value.tags, var.defaults.tags, {}), try(each.value.iam_role_tags, var.defaults.iam_role_tags, {}))
+}
+
 module "ec2instance" {
   source   = "../../"
   for_each = var.ec2instance
@@ -11,7 +22,7 @@ module "ec2instance" {
   cpu_options                          = try(each.value.cpu_options, var.defaults.cpu_options, null)
   create                               = try(each.value.create, var.defaults.create, true)
   create_eip                           = try(each.value.create_eip, var.defaults.create_eip, false)
-  create_iam_instance_profile          = try(each.value.create_iam_instance_profile, var.defaults.create_iam_instance_profile, false)
+  create_iam_instance_profile          = (try(each.value.existing_iam_role_name, var.defaults.existing_iam_role_name, null) != null) ? false : try(each.value.create_iam_instance_profile, var.defaults.create_iam_instance_profile, false)
   create_security_group                = try(each.value.create_security_group, var.defaults.create_security_group, true)
   create_spot_instance                 = try(each.value.create_spot_instance, var.defaults.create_spot_instance, false)
   disable_api_stop                     = try(each.value.disable_api_stop, var.defaults.disable_api_stop, null)
@@ -20,6 +31,7 @@ module "ec2instance" {
   ebs_volumes                          = try(each.value.ebs_volumes, var.defaults.ebs_volumes, null)
   eip_domain                           = try(each.value.eip_domain, var.defaults.eip_domain, "vpc")
   eip_tags                             = try(each.value.eip_tags, var.defaults.eip_tags, {})
+  enable_primary_ipv6                  = try(each.value.enable_primary_ipv6, var.defaults.enable_primary_ipv6, null)
   enable_volume_tags                   = try(each.value.enable_volume_tags, var.defaults.enable_volume_tags, true)
   enclave_options_enabled              = try(each.value.enclave_options_enabled, var.defaults.enclave_options_enabled, null)
   ephemeral_block_device               = try(each.value.ephemeral_block_device, var.defaults.ephemeral_block_device, null)
@@ -27,7 +39,7 @@ module "ec2instance" {
   hibernation                          = try(each.value.hibernation, var.defaults.hibernation, null)
   host_id                              = try(each.value.host_id, var.defaults.host_id, null)
   host_resource_group_arn              = try(each.value.host_resource_group_arn, var.defaults.host_resource_group_arn, null)
-  iam_instance_profile                 = try(each.value.iam_instance_profile, var.defaults.iam_instance_profile, null)
+  iam_instance_profile                 = try(module.instance_profile[each.key].name, try(each.value.iam_instance_profile, var.defaults.iam_instance_profile, null), null)
   iam_role_description                 = try(each.value.iam_role_description, var.defaults.iam_role_description, null)
   iam_role_name                        = try(each.value.iam_role_name, var.defaults.iam_role_name, null)
   iam_role_path                        = try(each.value.iam_role_path, var.defaults.iam_role_path, null)
@@ -57,6 +69,7 @@ module "ec2instance" {
   placement_partition_number = try(each.value.placement_partition_number, var.defaults.placement_partition_number, null)
   private_dns_name_options   = try(each.value.private_dns_name_options, var.defaults.private_dns_name_options, null)
   private_ip                 = try(each.value.private_ip, var.defaults.private_ip, null)
+  region                     = try(each.value.region, var.defaults.region, null)
   root_block_device          = try(each.value.root_block_device, var.defaults.root_block_device, null)
   secondary_private_ips      = try(each.value.secondary_private_ips, var.defaults.secondary_private_ips, null)
   security_group_description = try(each.value.security_group_description, var.defaults.security_group_description, null)
