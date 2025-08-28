@@ -157,6 +157,100 @@ module "ec2_instance" {
 - `network_interface` can't be specified together with `vpc_security_group_ids`, `associate_public_ip_address`, `subnet_id`. See [complete example](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/complete) for details.
 - In regards to spot instances, you must grant the `AWSServiceRoleForEC2Spot` service-linked role access to any custom KMS keys, otherwise your spot request and instances will fail with `bad parameters`. You can see more details about why the request failed by using the awscli and `aws ec2 describe-spot-instance-requests`
 
+## End-user configuration guide (variables overview)
+
+Use this section to decide which inputs you need to set for your use case. You do not need access to the source to use this guide.
+
+### Quick start checklist
+
+- Set at least:
+  - **subnet_id**: VPC subnet where the instance will launch
+  - (Optional) **name**: Logical name used in tags and derived resource names
+  - (Optional) **key_name**: SSH key pair name for SSH access
+  - (Optional) **instance_type**: Defaults to `t3.micro`
+  - (Optional) **vpc_security_group_ids** or rely on the auto-created security group and set **security_group_ingress_rules** to allow inbound traffic
+  - (Optional) **associate_public_ip_address** or **create_eip** if you need a public IP
+
+If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI via SSM parameter defined by **ami_ssm_parameter**.
+
+### Key inputs to consider
+
+| Input | Purpose | Example | Default |
+|------|---------|---------|---------|
+| name | Tag-friendly logical name | "web-01" | "" |
+| region | AWS region (overrides provider default) | "us-east-1" | null |
+| subnet_id | Subnet to launch into | "subnet-0123456789abcdef0" | null |
+| instance_type | EC2 instance type | "t3.small" | "t3.micro" |
+| key_name | SSH key pair name | "my-admin-key" | null |
+| ami | Explicit AMI ID to use | "ami-0abcd1234..." | null |
+| ami_ssm_parameter | SSM parameter for AMI ID | see AWS AL2023 param | AL2023 default |
+| vpc_security_group_ids | Use existing security groups | ["sg-0123", "sg-0456"] | [] |
+| create_security_group | Auto-create SG managed by module | true/false | true |
+| security_group_ingress_rules | Inbound rules when SG is created | allow 22/tcp from office | null |
+| associate_public_ip_address | Attach public IP on launch | true/false | null |
+| create_eip | Allocate and attach Elastic IP | true/false | false |
+| tags | Common tags on resources | { Environment = "dev" } | {} |
+
+### Advanced options (toggle as needed)
+
+- **Spot instances**: set **create_spot_instance = true** and optionally tune **spot_price**, **spot_type**, **spot_wait_for_fulfillment**, and other `spot_*` inputs; or use **instance_market_options**.
+- **IAM**: create an instance profile with **create_iam_instance_profile = true** and configure **iam_role_name**, **iam_role_description**, **iam_role_policies**, etc.; or set **iam_instance_profile** to reuse an existing one.
+- **Networking**: use **private_ip**, **secondary_private_ips**, **ipv6_address_count** or **ipv6_addresses**; enable primary IPv6 with **enable_primary_ipv6**. Set **placement_group**, **placement_partition_number** for cluster/partition strategies.
+- **Storage**: customize **root_block_device** (size/type/encryption/IOPS/throughput), and attach extra **ebs_volumes** with per-volume attributes and attachment behavior.
+- **Metadata and security**: set **metadata_options** (IMDSv2 tokens required by default), **disable_api_termination**, **disable_api_stop**, **monitoring**, **ebs_optimized**, **hibernation**, **enclave_options_enabled**.
+- **User data**: use **user_data** (UTF-8 text) or **user_data_base64** (binary). To force replacement on change, set **user_data_replace_on_change = true**.
+- **Launch template**: to inherit from an existing launch template, set **launch_template = { id/name, version }`. Values set in the module take precedence over the template.
+- **Security group rules**: when the module creates the SG, set maps **security_group_ingress_rules** and/or **security_group_egress_rules** (defaults allow all egress IPv4/IPv6).
+
+### Minimal configurations by scenario
+
+- **Private instance (no public internet)**:
+  - Set `subnet_id` (private subnet)
+  - Keep `associate_public_ip_address = null` and `create_eip = false`
+  - Access via Session Manager (configure IAM) or bastion; add ingress only if needed
+
+- **Publicly reachable instance**:
+  - Set `subnet_id` (public subnet)
+  - Set `associate_public_ip_address = true` or `create_eip = true`
+  - Add `security_group_ingress_rules` for needed ports (e.g., 22/tcp, 80/tcp, 443/tcp)
+
+- **Spot instance for cost savings**:
+  - Set `create_spot_instance = true`
+  - Optionally set `spot_price`, `spot_type`, `spot_wait_for_fulfillment`
+
+### Configuration flowchart
+
+```mermaid
+flowchart TD
+  A[Decide instance characteristics] --> B{Spot instance?}
+  B -- Yes --> B1[Set create_spot_instance=true and optionally spot_*]
+  B -- No --> C{Provide AMI?}
+  C -- Provide AMI ID --> C1[Set ami]
+  C -- Use default AL2023 via SSM --> C2[Keep ami null; ami_ssm_parameter default]
+  C1 --> D{Networking}
+  C2 --> D{Networking}
+  D --> D1[Set subnet_id]
+  D --> D2{Need public access?}
+  D2 -- Yes --> D2a[associate_public_ip_address=true or create_eip=true]
+  D2 -- No --> D2b[Keep defaults]
+  D --> D3{Use existing SGs?}
+  D3 -- Yes --> D3a[Set vpc_security_group_ids]
+  D3 -- No --> D3b[create_security_group=true; set security_group_ingress_rules]
+  D --> E{SSH access?}
+  E -- Yes --> E1[Set key_name and allow 22/tcp]
+  E -- No --> E2[Use Session Manager IAM role]
+  D --> F{IAM needed?}
+  F -- Yes --> F1[create_iam_instance_profile=true; iam_role_*]
+  F -- No --> G
+  D --> G{Storage}
+  G --> G1[Optional root_block_device settings]
+  G --> G2[Optional ebs_volumes map]
+  G --> H{User data?}
+  H -- Yes --> H1[user_data or user_data_base64; user_data_replace_on_change]
+  H -- No --> I
+  I[Apply: terraform init → plan → apply]
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
