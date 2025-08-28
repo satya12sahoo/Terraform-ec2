@@ -423,10 +423,10 @@ If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI 
 
 ```mermaid
 flowchart TD
-  A[Start] --> G{create && putin_khuylo?}
+  A[Start] --> G{create and putin_khuylo?}
   G -- No --> Z[Stop: module gated]
   G -- Yes --> B{instance_market_options set?}
-  B -- Yes --> B1[Use instance_market_options (Spot/Market)]
+  B -- Yes --> B1[Use instance_market_options]
   B -- No --> B2{create_spot_instance?}
   B2 -- Yes --> B2a[Create Spot request-backed instance]
   B2 -- No --> B2b[Create On-Demand instance]
