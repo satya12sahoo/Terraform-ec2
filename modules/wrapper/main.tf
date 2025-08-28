@@ -30,7 +30,6 @@ module "ec2instance" {
   iam_instance_profile                 = try(each.value.iam_instance_profile, var.defaults.iam_instance_profile, null)
   iam_role_description                 = try(each.value.iam_role_description, var.defaults.iam_role_description, null)
   iam_role_name                        = try(each.value.iam_role_name, var.defaults.iam_role_name, null)
-  existing_iam_role_name               = try(each.value.existing_iam_role_name, var.defaults.existing_iam_role_name, null)
   iam_role_path                        = try(each.value.iam_role_path, var.defaults.iam_role_path, null)
   iam_role_permissions_boundary        = try(each.value.iam_role_permissions_boundary, var.defaults.iam_role_permissions_boundary, null)
   iam_role_policies                    = try(each.value.iam_role_policies, var.defaults.iam_role_policies, {})
