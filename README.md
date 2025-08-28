@@ -152,6 +152,27 @@ module "ec2_instance" {
 }
 ```
 
+### Use an existing IAM role (no profile yet)
+
+If you already have an IAM role and only need an instance profile, use the helper module below and feed the profile name into this EC2 module.
+
+```hcl
+module "iam_profile" {
+  source     = "./modules/instance-profile-from-role"
+  role_name  = "my-existing-ec2-role"
+  name       = "ec2-profile"
+}
+
+module "ec2_instance" {
+  source = "."
+
+  name                 = "reuse-role"
+  subnet_id            = "subnet-0123456789abcdef0"
+  create_iam_instance_profile = false
+  iam_instance_profile        = module.iam_profile.name
+}
+```
+
 ### Allocate and associate an Elastic IP (non-Spot only)
 
 ```hcl
