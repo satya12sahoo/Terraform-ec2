@@ -6,18 +6,27 @@ Terraform module which creates an EC2 instance on AWS.
 
 ## Usage
 
-### Single EC2 Instance
+All examples below assume you are using this module from the current repository:
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
+  # ... inputs
+}
+```
 
-  name = "single-instance"
+### Minimal single EC2 instance
 
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "single-instance"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  # Optional but common
   instance_type = "t3.micro"
   key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
 
   tags = {
     Terraform   = "true"
@@ -26,56 +35,244 @@ module "ec2_instance" {
 }
 ```
 
-### Multiple EC2 Instance
+### Multiple EC2 instances
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
 
-  for_each = toset(["one", "two", "three"])
+  for_each = toset(["one", "two", "three"]) 
 
-  name = "instance-${each.key}"
-
+  name         = "instance-${each.key}"
+  subnet_id    = "subnet-0123456789abcdef0"
   instance_type = "t3.micro"
-  key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
-
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
 }
 ```
 
-### Spot EC2 Instance
+### Spot EC2 instance
+
+Use either `create_spot_instance = true` or supply `instance_market_options` (do not set both). If both are set, the Spot Instance Request path (`create_spot_instance = true`) is used and `instance_market_options` is ignored.
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
 
-  name = "spot-instance"
-
+  name                 = "spot-instance"
+  subnet_id            = "subnet-0123456789abcdef0"
   create_spot_instance = true
   spot_price           = "0.60"
   spot_type            = "persistent"
+}
+```
 
-  instance_type = "t3.micro"
-  key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
+Or with explicit market options (overrides `create_spot_instance`):
 
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "spot-instance"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  instance_market_options = {
+    market_type = "spot"
+    spot_options = {
+      max_price                  = "0.60"
+      spot_instance_type         = "persistent"
+      instance_interruption_behavior = "stop"
+    }
   }
 }
 ```
 
+### Use existing security groups (no SG created by module)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                      = "web"
+  subnet_id                 = "subnet-0123456789abcdef0"
+  create_security_group     = false
+  vpc_security_group_ids    = ["sg-0123", "sg-0456"]
+}
+```
+
+### Let the module create a security group with rules
+
+When the module creates the security group, supply rules as maps. Keys are logical names and appear in tags.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name       = "web"
+  subnet_id  = "subnet-0123456789abcdef0"
+
+  # Allow SSH and HTTP from anywhere (adjust in real use!)
+  security_group_ingress_rules = {
+    ssh = { from_port = 22, to_port = 22, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
+    http = { from_port = 80, to_port = 80, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
+  }
+}
+```
+
+### Attach additional EBS volumes
+
+Map keys act as default `device_name` fallback when not provided.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "with-volumes"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  ebs_volumes = {
+    "/dev/sdf" = { size = 50, type = "gp3", tags = { Purpose = "data" } }
+    "/dev/sdg" = { size = 100, type = "gp3", iops = 3000, throughput = 250 }
+  }
+}
+```
+
+### Create IAM role and instance profile automatically
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                          = "ssm-managed"
+  subnet_id                     = "subnet-0123456789abcdef0"
+  create_iam_instance_profile   = true
+  iam_role_name                 = "ec2-ssm"
+  iam_role_policies             = {
+    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    cw  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  }
+}
+```
+
+### Use an existing IAM role (no profile yet)
+
+If you already have an IAM role and only need an instance profile, use the helper module below and feed the profile name into this EC2 module.
+
+```hcl
+module "iam_profile" {
+  source     = "./modules/instance-profile-from-role"
+  role_name  = "my-existing-ec2-role"
+  name       = "ec2-profile"
+}
+
+module "ec2_instance" {
+  source = "."
+
+  name                 = "reuse-role"
+  subnet_id            = "subnet-0123456789abcdef0"
+  create_iam_instance_profile = false
+  iam_instance_profile        = module.iam_profile.name
+}
+```
+
+### Allocate and associate an Elastic IP (non-Spot only)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name       = "public-server"
+  subnet_id  = "subnet-0123456789abcdef0"
+  create_eip = true
+  eip_tags   = { Purpose = "static-ip" }
+}
+```
+
+### Ignore AMI changes (keep instance on AMI updates)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                = "pinned-ami"
+  subnet_id           = "subnet-0123456789abcdef0"
+  ami                 = "ami-0abc123456789def0"
+  ignore_ami_changes  = true
+}
+```
+
+### Launch template passthrough (module settings win)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "lt-based"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  launch_template = {
+    id      = "lt-0123456789abcdef0"
+    version = "$Latest"
+  }
+
+  # Module inputs override LT settings if provided
+  instance_type = "t3.small"
+}
+```
+
+### User data with replacement on change
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "with-userdata"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  user_data = <<-EOT
+    #!/bin/bash
+    echo "hello" > /var/tmp/hello.txt
+  EOT
+
+  user_data_replace_on_change = true
+}
+```
+
+### Use an SSM-provided default AMI (default behavior)
+
+If `ami` is not set, the module uses the SSM parameter from `ami_ssm_parameter`, which by default points to Amazon Linux 2023.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+  name   = "al2023"
+  subnet_id = "subnet-0123456789abcdef0"
+  # ami left null -> SSM AL2023 used
+}
+```
+
+## Feature overview and behavior
+
+- create gating: Resources are created only when `create = true` and `putin_khuylo = true`.
+- AMI sourcing: Uses `ami` if provided; otherwise resolves SSM parameter `ami_ssm_parameter`.
+- AMI change strategy: Set `ignore_ami_changes = true` to ignore AMI drift without recreating the instance (uses a separate resource).
+- Spot vs On-Demand:
+  - `create_spot_instance = true` creates a Spot request-backed instance.
+  - Providing `instance_market_options` overrides `create_spot_instance`.
+- Elastic IP: Created only for non-Spot instances when `create_eip = true`.
+- Security groups:
+  - If `create_security_group = true` and no `network_interface` is provided, the module creates an SG and accepts rule maps via `security_group_ingress_rules` and `security_group_egress_rules`.
+  - If you pass `network_interface`, you must not pass `vpc_security_group_ids`, `associate_public_ip_address`, or `subnet_id` on the instance (provider limitation). The module honors this by nulling conflicting attributes when `network_interface` is used.
+- Volume tagging: When `enable_volume_tags = true`, per-volume tags are applied and a `Name = var.name` tag is set on created volumes; this conflicts with `root_block_device.tags` per AWS/provider behavior.
+- CPU credits: `cpu_credits` is applied only to t-class instance types.
+- Metadata options: Defaults to IMDSv2 tokens required and hop limit 1; override via `metadata_options`.
+- IAM profile:
+  - If `create_iam_instance_profile = true`, the module creates an IAM role/profile and attaches `iam_role_policies` ARNs.
+  - Otherwise, supply `iam_instance_profile` (name) to use an existing profile.
+
 ## Examples
 
-- [Complete EC2 instance](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/complete)
-- [EC2 instance w/ private network access via Session Manager](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/session-manager)
+- Additional upstream examples for inspiration:
+  - [Complete EC2 instance](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/complete)
+  - [EC2 instance w/ private network access via Session Manager](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/session-manager)
 
 ## Make an encrypted AMI for use
 
@@ -193,14 +390,39 @@ If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI 
 
 ### Advanced options (toggle as needed)
 
-- **Spot instances**: set **create_spot_instance = true** and optionally tune **spot_price**, **spot_type**, **spot_wait_for_fulfillment**, and other `spot_*` inputs; or use **instance_market_options**.
+- **Spot instances**: set **create_spot_instance = true** and optionally tune **spot_price**, **spot_type**, **spot_wait_for_fulfillment**, and other `spot_*` inputs; alternatively use **instance_market_options** on `aws_instance` by leaving `create_spot_instance = false`.
 - **IAM**: create an instance profile with **create_iam_instance_profile = true** and configure **iam_role_name**, **iam_role_description**, **iam_role_policies**, etc.; or set **iam_instance_profile** to reuse an existing one.
 - **Networking**: use **private_ip**, **secondary_private_ips**, **ipv6_address_count** or **ipv6_addresses**; enable primary IPv6 with **enable_primary_ipv6**. Set **placement_group**, **placement_partition_number** for cluster/partition strategies.
-- **Storage**: customize **root_block_device** (size/type/encryption/IOPS/throughput), and attach extra **ebs_volumes** with per-volume attributes and attachment behavior.
+- **Storage**: customize **root_block_device** (size/type/encryption/IOPS/throughput), configure **ephemeral_block_device** (instance store), and attach extra **ebs_volumes** with per-volume attributes and attachment behavior.
 - **Metadata and security**: set **metadata_options** (IMDSv2 tokens required by default), **disable_api_termination**, **disable_api_stop**, **monitoring**, **ebs_optimized**, **hibernation**, **enclave_options_enabled**.
 - **User data**: use **user_data** (UTF-8 text) or **user_data_base64** (binary). To force replacement on change, set **user_data_replace_on_change = true**.
 - **Launch template**: to inherit from an existing launch template, set **launch_template = { id/name, version }`. Values set in the module take precedence over the template.
 - **Security group rules**: when the module creates the SG, set maps **security_group_ingress_rules** and/or **security_group_egress_rules** (defaults allow all egress IPv4/IPv6).
+
+### Inputs by function
+
+- General
+  - `create`, `name`, `region`, `tags`, `instance_tags`, `timeouts`, `putin_khuylo`
+- AMI and image strategy
+  - `ami`, `ami_ssm_parameter`, `ignore_ami_changes`
+- Instance runtime and behavior
+  - `instance_type`, `availability_zone`, `key_name`, `cpu_options`, `cpu_credits`, `monitoring`, `disable_api_termination`, `disable_api_stop`, `hibernation`, `metadata_options`, `maintenance_options`, `private_dns_name_options`, `tenancy`, `get_password_data`, `host_id`, `host_resource_group_arn`, `placement_group`, `placement_partition_number`, `capacity_reservation_specification`, `enclave_options_enabled`, `enable_primary_ipv6`
+- Networking
+  - `subnet_id`, `associate_public_ip_address`, `vpc_security_group_ids`, `network_interface`, `ipv6_address_count`, `ipv6_addresses`, `private_ip`, `secondary_private_ips`, `source_dest_check`
+- Security group (module-managed)
+  - `create_security_group`, `security_group_name`, `security_group_use_name_prefix`, `security_group_description`, `security_group_vpc_id`, `security_group_tags`, `security_group_ingress_rules`, `security_group_egress_rules`
+- IAM and instance profile
+  - `create_iam_instance_profile`, `iam_instance_profile`, `iam_role_name`, `iam_role_use_name_prefix`, `iam_role_path`, `iam_role_description`, `iam_role_permissions_boundary`, `iam_role_policies`, `iam_role_tags`
+- Storage (root, instance store, and additional EBS)
+  - `root_block_device`, `ephemeral_block_device`, `ebs_volumes`, `volume_tags`, `enable_volume_tags`, `ebs_optimized`
+- Spot and market options
+  - `create_spot_instance`, `instance_market_options`, `spot_price`, `spot_type`, `spot_launch_group`, `spot_instance_interruption_behavior`, `spot_wait_for_fulfillment`, `spot_valid_from`, `spot_valid_until`
+- Launch template passthrough
+  - `launch_template`
+- Elastic IP
+  - `create_eip`, `eip_domain`, `eip_tags` (only for non-Spot usage)
+- User data
+  - `user_data`, `user_data_base64`, `user_data_replace_on_change`
 
 ### Minimal configurations by scenario
 
@@ -222,33 +444,69 @@ If you do not set an AMI, the module will use the default Amazon Linux 2023 AMI 
 
 ```mermaid
 flowchart TD
-  A[Decide instance characteristics] --> B{Spot instance?}
-  B -- Yes --> B1[Set create_spot_instance=true and optionally spot_*]
-  B -- No --> C{Provide AMI?}
-  C -- Provide AMI ID --> C1[Set ami]
-  C -- Use default AL2023 via SSM --> C2[Keep ami null; ami_ssm_parameter default]
-  C1 --> D{Networking}
-  C2 --> D{Networking}
-  D --> D1[Set subnet_id]
-  D --> D2{Need public access?}
-  D2 -- Yes --> D2a[associate_public_ip_address=true or create_eip=true]
-  D2 -- No --> D2b[Keep defaults]
-  D --> D3{Use existing SGs?}
-  D3 -- Yes --> D3a[Set vpc_security_group_ids]
-  D3 -- No --> D3b[create_security_group=true; set security_group_ingress_rules]
-  D --> E{SSH access?}
-  E -- Yes --> E1[Set key_name and allow 22/tcp]
-  E -- No --> E2[Use Session Manager IAM role]
-  D --> F{IAM needed?}
-  F -- Yes --> F1[create_iam_instance_profile=true; iam_role_*]
-  F -- No --> G
-  D --> G{Storage}
-  G --> G1[Optional root_block_device settings]
-  G --> G2[Optional ebs_volumes map]
-  G --> H{User data?}
-  H -- Yes --> H1[user_data or user_data_base64; user_data_replace_on_change]
-  H -- No --> I
-  I[Apply: terraform init → plan → apply]
+  A[Start] --> G{create and putin_khuylo?}
+  G -- No --> Z[Stop: module gated]
+  G -- Yes --> B{instance_market_options set?}
+  B -- Yes --> B1[Use instance_market_options]
+  B -- No --> B2{create_spot_instance?}
+  B2 -- Yes --> B2a[Create Spot request-backed instance]
+  B2 -- No --> B2b[Create On-Demand instance]
+
+  C{Provide AMI?}
+  B1 --> C
+  B2a --> C
+  B2b --> C
+  C -- Yes --> C1[Set ami]
+  C -- No --> C2[Use SSM ami_ssm_parameter]
+  C1 --> C3{ignore_ami_changes?}
+  C2 --> C3
+  C3 -- Yes --> C3a[Ignore AMI drift]
+  C3 -- No --> D
+
+  D{Launch template provided?}
+  D -- Yes --> D1[Set launch_template; module inputs override]
+  D -- No --> E
+
+  E{Provide network_interface?}
+  E -- Yes --> E1[Attach network interfaces]
+  E1 --> E1n[Do not set subnet_id, SG IDs, public IP]
+  E -- No --> N[Standard networking]
+  N --> N1[Set subnet_id]
+  N --> N2{Need public access?}
+  N2 -- Yes --> N2a[associate_public_ip_address=true]
+  N2 -- No --> N2b[Keep default]
+  N --> N3{Create security group?}
+  N3 -- Yes --> N3a[create_security_group=true; provide rule maps]
+  N3 -- No --> N3b[Use vpc_security_group_ids]
+
+  P{Non-Spot instance?}
+  N2 --> P
+  P -- Yes --> P1{Need static IP?}
+  P1 -- Yes --> P1a[create_eip=true]
+  P1 -- No --> Q
+  P -- No --> Q
+
+  Q --> F{IAM profile needed?}
+  F -- Yes --> F1[create_iam_instance_profile=true; iam_role_policies]
+  F -- No --> F2[Use iam_instance_profile]
+
+  Q --> S[Optional storage]
+  S --> S1[root_block_device settings]
+  S --> S2[ebs_volumes map]
+
+  Q --> O[Other options]
+  O --> O1[metadata_options defaults to IMDSv2]
+  O --> O2[CPU credits apply to t-class]
+  O --> O3[monitoring, hibernation, tenancy, maintenance_options]
+
+  Q --> U{User data?}
+  U -- Yes --> U1[user_data or user_data_base64]
+  U1 --> U2{Replace on change?}
+  U2 -- Yes --> U2a[user_data_replace_on_change=true]
+  U2 -- No --> V
+  U -- No --> V
+
+  V[Apply: terraform init, plan, apply]
 ```
 
 <!-- BEGIN_TF_DOCS -->
