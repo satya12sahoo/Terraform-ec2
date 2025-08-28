@@ -6,18 +6,27 @@ Terraform module which creates an EC2 instance on AWS.
 
 ## Usage
 
-### Single EC2 Instance
+All examples below assume you are using this module from the current repository:
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
+  # ... inputs
+}
+```
 
-  name = "single-instance"
+### Minimal single EC2 instance
 
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "single-instance"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  # Optional but common
   instance_type = "t3.micro"
   key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
 
   tags = {
     Terraform   = "true"
@@ -26,56 +35,223 @@ module "ec2_instance" {
 }
 ```
 
-### Multiple EC2 Instance
+### Multiple EC2 instances
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
 
-  for_each = toset(["one", "two", "three"])
+  for_each = toset(["one", "two", "three"]) 
 
-  name = "instance-${each.key}"
-
+  name         = "instance-${each.key}"
+  subnet_id    = "subnet-0123456789abcdef0"
   instance_type = "t3.micro"
-  key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
-
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
 }
 ```
 
-### Spot EC2 Instance
+### Spot EC2 instance
+
+Use either `create_spot_instance = true` or supply `instance_market_options` (which takes precedence over `create_spot_instance`).
 
 ```hcl
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "."
 
-  name = "spot-instance"
-
+  name                 = "spot-instance"
+  subnet_id            = "subnet-0123456789abcdef0"
   create_spot_instance = true
   spot_price           = "0.60"
   spot_type            = "persistent"
+}
+```
 
-  instance_type = "t3.micro"
-  key_name      = "user1"
-  monitoring    = true
-  subnet_id     = "subnet-eddcdzz4"
+Or with explicit market options (overrides `create_spot_instance`):
 
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "spot-instance"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  instance_market_options = {
+    market_type = "spot"
+    spot_options = {
+      max_price                  = "0.60"
+      spot_instance_type         = "persistent"
+      instance_interruption_behavior = "stop"
+    }
   }
 }
 ```
 
+### Use existing security groups (no SG created by module)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                      = "web"
+  subnet_id                 = "subnet-0123456789abcdef0"
+  create_security_group     = false
+  vpc_security_group_ids    = ["sg-0123", "sg-0456"]
+}
+```
+
+### Let the module create a security group with rules
+
+When the module creates the security group, supply rules as maps. Keys are logical names and appear in tags.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name       = "web"
+  subnet_id  = "subnet-0123456789abcdef0"
+
+  # Allow SSH and HTTP from anywhere (adjust in real use!)
+  security_group_ingress_rules = {
+    ssh = { from_port = 22, to_port = 22, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
+    http = { from_port = 80, to_port = 80, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
+  }
+}
+```
+
+### Attach additional EBS volumes
+
+Map keys act as default `device_name` fallback when not provided.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "with-volumes"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  ebs_volumes = {
+    "/dev/sdf" = { size = 50, type = "gp3", tags = { Purpose = "data" } }
+    "/dev/sdg" = { size = 100, type = "gp3", iops = 3000, throughput = 250 }
+  }
+}
+```
+
+### Create IAM role and instance profile automatically
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                          = "ssm-managed"
+  subnet_id                     = "subnet-0123456789abcdef0"
+  create_iam_instance_profile   = true
+  iam_role_name                 = "ec2-ssm"
+  iam_role_policies             = {
+    ssm = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    cw  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  }
+}
+```
+
+### Allocate and associate an Elastic IP (non-Spot only)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name       = "public-server"
+  subnet_id  = "subnet-0123456789abcdef0"
+  create_eip = true
+  eip_tags   = { Purpose = "static-ip" }
+}
+```
+
+### Ignore AMI changes (keep instance on AMI updates)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name                = "pinned-ami"
+  subnet_id           = "subnet-0123456789abcdef0"
+  ami                 = "ami-0abc123456789def0"
+  ignore_ami_changes  = true
+}
+```
+
+### Launch template passthrough (module settings win)
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "lt-based"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  launch_template = {
+    id      = "lt-0123456789abcdef0"
+    version = "$Latest"
+  }
+
+  # Module inputs override LT settings if provided
+  instance_type = "t3.small"
+}
+```
+
+### User data with replacement on change
+
+```hcl
+module "ec2_instance" {
+  source = "."
+
+  name      = "with-userdata"
+  subnet_id = "subnet-0123456789abcdef0"
+
+  user_data = <<-EOT
+    #!/bin/bash
+    echo "hello" > /var/tmp/hello.txt
+  EOT
+
+  user_data_replace_on_change = true
+}
+```
+
+### Use an SSM-provided default AMI (default behavior)
+
+If `ami` is not set, the module uses the SSM parameter from `ami_ssm_parameter`, which by default points to Amazon Linux 2023.
+
+```hcl
+module "ec2_instance" {
+  source = "."
+  name   = "al2023"
+  subnet_id = "subnet-0123456789abcdef0"
+  # ami left null -> SSM AL2023 used
+}
+```
+
+## Feature overview and behavior
+
+- create gating: Resources are created only when `create = true` and `putin_khuylo = true`.
+- AMI sourcing: Uses `ami` if provided; otherwise resolves SSM parameter `ami_ssm_parameter`.
+- AMI change strategy: Set `ignore_ami_changes = true` to ignore AMI drift without recreating the instance (uses a separate resource).
+- Spot vs On-Demand:
+  - `create_spot_instance = true` creates a Spot request-backed instance.
+  - Providing `instance_market_options` overrides `create_spot_instance`.
+- Elastic IP: Created only for non-Spot instances when `create_eip = true`.
+- Security groups:
+  - If `create_security_group = true` and no `network_interface` is provided, the module creates an SG and accepts rule maps via `security_group_ingress_rules` and `security_group_egress_rules`.
+  - If you pass `network_interface`, you must not pass `vpc_security_group_ids`, `associate_public_ip_address`, or `subnet_id` on the instance (provider limitation). The module honors this by nulling conflicting attributes when `network_interface` is used.
+- Volume tagging: When `enable_volume_tags = true`, per-volume tags are applied and a `Name = var.name` tag is set on created volumes; this conflicts with `root_block_device.tags` per AWS/provider behavior.
+- CPU credits: `cpu_credits` is applied only to t-class instance types.
+- Metadata options: Defaults to IMDSv2 tokens required and hop limit 1; override via `metadata_options`.
+- IAM profile:
+  - If `create_iam_instance_profile = true`, the module creates an IAM role/profile and attaches `iam_role_policies` ARNs.
+  - Otherwise, supply `iam_instance_profile` (name) to use an existing profile.
+
 ## Examples
 
-- [Complete EC2 instance](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/complete)
-- [EC2 instance w/ private network access via Session Manager](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/session-manager)
+- Additional upstream examples for inspiration:
+  - [Complete EC2 instance](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/complete)
+  - [EC2 instance w/ private network access via Session Manager](https://github.com/terraform-aws-modules/terraform-aws-ec2-instance/tree/master/examples/session-manager)
 
 ## Make an encrypted AMI for use
 
