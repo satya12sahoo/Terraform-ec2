@@ -1,1 +1,87 @@
+default_install_hook_types: [pre-commit, commit-msg]
+fail_fast: false
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    - id: check-added-large-files
+      exclude_types: ["image"] # 500kb Should be enough for anybody but we will just ignore images
+    - id: check-ast
+    - id: check-builtin-literals
+    - id: check-case-conflict
+    - id: check-executables-have-shebangs
+    - id: check-json
+    - id: check-merge-conflict
+    - id: check-symlinks
+    - id: check-yaml
+      exclude: "templates"
+    - id: detect-aws-credentials
+      args:
+      - --allow-missing-credentials
+    - id: detect-private-key
+      exclude: ".gitleaks*"
+    - id: end-of-file-fixer
+    - id: fix-byte-order-marker
+    - id: forbid-new-submodules
+    - id: mixed-line-ending
+    - id: pretty-format-json
+      args:
+      - --autofix
+      - --no-sort-keys
+      - --indent=2
+    - id: trailing-whitespace
 
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: forbid-crlf
+      - id: remove-crlf
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: forbid-binary
+        exclude_types: ["image"] # 500kb Should be enough for anybody but we will just ignore images
+      - id: shellcheck # Needs shellcheck: https://github.com/koalaman/shellcheck
+      - id: shfmt # Needs shfmt: https://github.com/mvdan/sh/releases
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+        exclude: ^env/
+        args:
+          - --hook-config=--retry-once-with-cleanup=true
+      - id: terraform_tflint
+        exclude: ^(live/|env/|.*/examples/)
+        args:
+          - '--args=--only=terraform_comment_syntax'
+          - '--args=--only=terraform_deprecated_index'
+          - '--args=--only=terraform_deprecated_interpolation'
+          - '--args=--only=terraform_documented_outputs'
+          - '--args=--only=terraform_documented_variables'
+          - '--args=--only=terraform_module_pinned_source'
+          - '--args=--only=terraform_naming_convention'
+          - '--args=--only=terraform_required_providers'
+          - '--args=--only=terraform_required_version'
+          - '--args=--only=terraform_standard_module_structure'
+          - '--args=--only=terraform_typed_variables'
+          - '--args=--only=terraform_unused_declarations'
+          - '--args=--only=terraform_workspace_remote'
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: v3.3.1
+    hooks:
+    - id: pylint
+      args:
+      - --disable=C0301 # Line too long (102/100) (line-too-long)
+      - --disable=E0401 # Unable to import 'boto3' (import-error)
+      - --disable=R0801 # Similar lines in 2 files ... (duplicate-code)
+      - --disable=W0703 # Catching too general exception Exception (broad-except)
+
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-d=relaxed]
