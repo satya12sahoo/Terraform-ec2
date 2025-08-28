@@ -93,16 +93,16 @@ terraform init && terraform apply -var-file="examples/wrapper/terraform.tfvars" 
 
 ```mermaid
 flowchart TD
-  A[Caller tfvars: defaults + instances] --> B[Wrapper locals: merge defaults into each instance]
-  B --> C[for_each over instances]
-  C --> D[Base EC2 module invocation]
-  D --> E[Create Security Group (optional)]
-  D --> F[Create IAM Role/Profile (optional)]
-  D --> G[Create/Attach EBS volumes (optional)]
-  D --> H[Create EIP (optional)]
-  D --> I[Create EC2 or Spot Instance]
-  I --> J[Outputs per instance]
-  J --> K[Wrapper aggregated outputs (map by key)]
+  A["Caller tfvars: defaults + instances"] --> B["Wrapper locals: merge defaults into each instance"]
+  B --> C["for_each over instances"]
+  C --> D["Base EC2 module invocation"]
+  D --> E["Create Security Group (optional)"]
+  D --> F["Create IAM Role/Profile (optional)"]
+  D --> G["Create/Attach EBS volumes (optional)"]
+  D --> H["Create EIP (optional)"]
+  D --> I["Create EC2 or Spot Instance"]
+  I --> J["Outputs per instance"]
+  J --> K["Wrapper aggregated outputs (map by key)"]
 ```
 
 
