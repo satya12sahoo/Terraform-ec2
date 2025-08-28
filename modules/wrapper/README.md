@@ -133,6 +133,159 @@ This wrapper consumes the root EC2 module in this repository and lets you define
     - cidr_ipv4 (string), cidr_ipv6 (string), description (string), from_port (number), to_port (number), ip_protocol (string, default "tcp"), prefix_list_id (string), referenced_security_group_id (string), tags (map(string), default {})
   - Egress rules default to allow all IPv4/IPv6 if not specified.
 
+### Complex object inputs
+
+Capacity reservation specification (`capacity_reservation_specification`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| capacity_reservation_preference | string |  | Preference for capacity reservation |
+| capacity_reservation_target.capacity_reservation_id | string |  | Target Capacity Reservation ID |
+| capacity_reservation_target.capacity_reservation_resource_group_arn | string |  | Capacity Reservation resource group ARN |
+
+Example
+
+```hcl
+capacity_reservation_specification = {
+  capacity_reservation_preference = "open"
+  capacity_reservation_target = {
+    capacity_reservation_id = "cr-0123456789abcdef0"
+  }
+}
+```
+
+CPU options (`cpu_options`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| amd_sev_snp | string |  | AMD SEV-SNP setting |
+| core_count | number |  | Number of CPU cores |
+| threads_per_core | number |  | Threads per core |
+
+Example
+
+```hcl
+cpu_options = {
+  core_count       = 2
+  threads_per_core = 2
+}
+```
+
+Instance market options (`instance_market_options`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| market_type | string |  | Market type (e.g., "spot") |
+| spot_options.instance_interruption_behavior | string |  | Spot interruption behavior |
+| spot_options.max_price | string |  | Max spot price |
+| spot_options.spot_instance_type | string |  | Spot instance type |
+| spot_options.valid_until | string |  | Valid until timestamp |
+
+Example
+
+```hcl
+instance_market_options = {
+  market_type = "spot"
+  spot_options = {
+    instance_interruption_behavior = "stop"
+    max_price                      = "0.015"
+    spot_instance_type             = "one-time"
+  }
+}
+```
+
+Launch template (`launch_template`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| id | string |  | Launch template ID |
+| name | string |  | Launch template name |
+| version | string |  | Launch template version |
+
+Example
+
+```hcl
+launch_template = {
+  name    = "lt-web"
+  version = "$Latest"
+}
+```
+
+Maintenance options (`maintenance_options`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| auto_recovery | string |  | Auto recovery setting |
+
+Example
+
+```hcl
+maintenance_options = {
+  auto_recovery = "default"
+}
+```
+
+Metadata options (`metadata_options`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| http_endpoint | string | "enabled" | IMDS endpoint state |
+| http_protocol_ipv6 | string |  | IMDS IPv6 |
+| http_put_response_hop_limit | number | 1 | IMDS hop limit |
+| http_tokens | string | "required" | IMDSv2 token requirement |
+| instance_metadata_tags | string |  | Expose tags to IMDS |
+
+Example
+
+```hcl
+metadata_options = {
+  http_endpoint               = "enabled"
+  http_tokens                 = "required"
+  http_put_response_hop_limit = 2
+}
+```
+
+Private DNS name options (`private_dns_name_options`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| enable_resource_name_dns_a_record | bool |  | Enable A record |
+| enable_resource_name_dns_aaaa_record | bool |  | Enable AAAA record |
+| hostname_type | string |  | Resource name DNS hostname type |
+
+Example
+
+```hcl
+private_dns_name_options = {
+  enable_resource_name_dns_a_record    = true
+  enable_resource_name_dns_aaaa_record = false
+  hostname_type                        = "resource-name"
+}
+```
+
+Root block device (`root_block_device`)
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| delete_on_termination | bool |  | Delete on termination |
+| encrypted | bool |  | Encrypted |
+| iops | number |  | Provisioned IOPS |
+| kms_key_id | string |  | KMS key for encryption |
+| throughput | number |  | Throughput (MiB/s) |
+| size | number |  | Volume size (GiB) |
+| type | string |  | Volume type (e.g., gp3) |
+| tags | map(string) |  | Tags for the root volume |
+
+Example
+
+```hcl
+root_block_device = {
+  size = 20
+  type = "gp3"
+  iops = 3000
+}
+```
+
 ### Conditional inputs and behavior
 
 - IAM profile creation
@@ -154,6 +307,41 @@ This wrapper consumes the root EC2 module in this repository and lets you define
 
 - ENIs vs SGs and source/dest check
   - When `network_interface` is set, `vpc_security_group_ids` and `source_dest_check` on the instance are not used. Manage those on the ENI.
+
+### Additional examples
+
+EBS volumes (continued) — full map example
+
+```hcl
+ebs_volumes = {
+  logs = {
+    size   = 100
+    type   = "gp3"
+    iops   = 3000
+    throughput = 125
+    tags   = { Name = "app-logs" }
+    device_name = "/dev/sdk"
+  }
+}
+```
+
+Security group rules (ingress and egress)
+
+```hcl
+create_security_group = true
+security_group_ingress_rules = {
+  ssh = { from_port = 22, to_port = 22, ip_protocol = "tcp", cidr_ipv4 = "0.0.0.0/0" }
+}
+security_group_egress_rules = {
+  all = { ip_protocol = "-1", cidr_ipv4 = "0.0.0.0/0" }
+}
+```
+
+Timeouts
+
+```hcl
+timeouts = { create = "30m", update = "30m", delete = "30m" }
+```
 
 ### Outputs
 
