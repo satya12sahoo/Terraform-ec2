@@ -100,6 +100,61 @@ This wrapper consumes the root EC2 module in this repository and lets you define
 | eip_tags | map(string) | {} | Tags for EIP |
 | putin_khuylo | bool | true | Required confirmation flag |
 
+### Map-typed inputs and schemas
+
+- instances (map(any))
+  - Keyed by instance key. Each value is a map of base module inputs for that instance.
+
+- defaults (map)
+  - Shallow-merged into each instance before applying. Per-instance values override defaults.
+
+- tags (map(string)) / instance_tags (map(string)) / volume_tags (map(string)) / security_group_tags (map(string)) / eip_tags (map(string)) / iam_role_tags (map(string))
+  - Key-value tags. Values must be strings.
+
+- iam_role_policies (map(string))
+  - Map of policy_name => policy_arn to attach to the created role.
+
+- timeouts (map(string))
+  - Keys: `create`, `update`, `delete`. Values are duration strings, e.g., "30m".
+
+- ebs_volumes (map(object))
+  - Keyed by a logical volume name; value schema:
+    - encrypted (bool), final_snapshot (bool), iops (number), kms_key_id (string), multi_attach_enabled (bool), outpost_arn (string), size (number), snapshot_id (string), throughput (number), type (string, default "gp3")
+    - tags (map(string), default {})
+    - Attachment: device_name (string, optional; defaults to map key), force_detach (bool), skip_destroy (bool), stop_instance_before_detaching (bool)
+
+- network_interface (map(object))
+  - Keyed by device key; value schema:
+    - network_interface_id (string)
+    - delete_on_termination (bool), device_index (number; defaults to map key index), network_card_index (number)
+
+- security_group_egress_rules (map(object)) and security_group_ingress_rules (map(object))
+  - Keyed by rule name; value schema:
+    - cidr_ipv4 (string), cidr_ipv6 (string), description (string), from_port (number), to_port (number), ip_protocol (string, default "tcp"), prefix_list_id (string), referenced_security_group_id (string), tags (map(string), default {})
+  - Egress rules default to allow all IPv4/IPv6 if not specified.
+
+### Conditional inputs and behavior
+
+- IAM profile creation
+  - Set `create_iam_instance_profile = true` to use IAM role inputs (`iam_role_*`, `iam_role_policies`, `iam_role_tags`).
+  - Otherwise provide `iam_instance_profile` to use an existing profile.
+
+- Security group creation
+  - Set `create_security_group = true` to use `security_group_*` and rule maps.
+  - If false, provide `vpc_security_group_ids` instead.
+
+- Elastic IP
+  - Set `create_eip = true` to use `eip_domain` and `eip_tags`.
+
+- Spot instances
+  - Set `create_spot_instance = true` to use `spot_*` inputs. If `instance_market_options` is set, it overrides `create_spot_instance`.
+
+- Volume tags vs root block device tags
+  - `enable_volume_tags = true` applies `volume_tags` to launch-created volumes but conflicts with `root_block_device.tags`.
+
+- ENIs vs SGs and source/dest check
+  - When `network_interface` is set, `vpc_security_group_ids` and `source_dest_check` on the instance are not used. Manage those on the ENI.
+
 ### Outputs
 
 - instances (map(object))
