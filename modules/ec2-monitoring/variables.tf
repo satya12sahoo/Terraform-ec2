@@ -164,6 +164,52 @@ variable "dashboard_name" {
   default     = null
 }
 
+variable "dashboard_config" {
+  description = "Custom CloudWatch dashboard configuration. If not provided, uses default dashboard"
+  type = object({
+    widgets = list(object({
+      type   = string
+      x      = number
+      y      = number
+      width  = number
+      height = number
+      properties = object({
+        metrics = list(list(string))
+        period = optional(number, 300)
+        stat   = optional(string, "Average")
+        region = optional(string)
+        title  = optional(string)
+        view   = optional(string, "timeSeries")
+        stacked = optional(bool, false)
+        yAxis = optional(object({
+          left = optional(object({
+            min = optional(number)
+            max = optional(number)
+            showUnits = optional(bool)
+          }))
+          right = optional(object({
+            min = optional(number)
+            max = optional(number)
+            showUnits = optional(bool)
+          }))
+        }))
+      })
+    }))
+  })
+  default = null
+}
+
+variable "dashboard_period" {
+  description = "Default period for dashboard metrics (seconds)"
+  type        = number
+  default     = 300
+}
+
+variable "dashboard_stat" {
+  description = "Default statistic for dashboard metrics"
+  type        = string
+  default     = "Average"
+
 # CloudWatch Log Group Configuration
 variable "create_log_group" {
   description = "Whether to create CloudWatch log group"
@@ -231,6 +277,63 @@ variable "memory_alarm_evaluation_periods" {
   type        = number
   default     = 2
 }
+
+# Custom Alarms Configuration
+variable "custom_alarms" {
+  description = "List of custom CloudWatch alarms to create"
+  type = list(object({
+    name                    = string
+    description            = string
+    metric_name            = string
+    namespace              = string
+    comparison_operator    = string
+    threshold              = number
+    period                 = number
+    evaluation_periods     = number
+    statistic              = string
+    dimensions             = map(string)
+    alarm_actions          = optional(list(string), [])
+    ok_actions             = optional(list(string), [])
+    insufficient_data_actions = optional(list(string), [])
+    treat_missing_data     = optional(string, "missing")
+    datapoints_to_alarm    = optional(number)
+    extended_statistic     = optional(string)
+    unit                   = optional(string)
+  }))
+  default = []
+}
+
+# Multiple Monitoring Profiles
+variable "monitoring_profiles" {
+  description = "Predefined monitoring profiles for different use cases"
+  type = object({
+    profile = optional(string, "default")
+    # Profile-specific configurations
+    web_server = optional(object({
+      cpu_threshold = optional(number, 70)
+      memory_threshold = optional(number, 75)
+      disk_threshold = optional(number, 80)
+      response_time_threshold = optional(number, 1000)
+      custom_metrics = optional(list(string), [])
+    }))
+    database_server = optional(object({
+      cpu_threshold = optional(number, 60)
+      memory_threshold = optional(number, 70)
+      disk_threshold = optional(number, 85)
+      connection_threshold = optional(number, 100)
+      custom_metrics = optional(list(string), [])
+    }))
+    application_server = optional(object({
+      cpu_threshold = optional(number, 80)
+      memory_threshold = optional(number, 80)
+      disk_threshold = optional(number, 75)
+      error_rate_threshold = optional(number, 5)
+      custom_metrics = optional(list(string), [])
+    }))
+  })
+  default = {
+    profile = "default"
+  }
 
 variable "alarm_actions" {
   description = "List of ARNs to notify when alarm is triggered"

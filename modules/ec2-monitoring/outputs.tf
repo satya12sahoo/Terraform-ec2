@@ -60,7 +60,24 @@ output "memory_alarm_arn" {
   value       = var.create_memory_alarm ? aws_cloudwatch_metric_alarm.high_memory_alarm[0].arn : null
 }
 
+output "custom_alarm_arns" {
+  description = "Map of custom alarm names to ARNs"
+  value = {
+    for name, alarm in aws_cloudwatch_metric_alarm.custom_alarms : name => alarm.arn
+  }
+}
+
 output "cloudwatch_agent_config" {
   description = "The CloudWatch agent configuration JSON"
   value       = var.cloudwatch_agent_config
+}
+
+output "dashboard_body" {
+  description = "The CloudWatch dashboard configuration body"
+  value       = local.dashboard_body
+}
+
+output "monitoring_profile_config" {
+  description = "The active monitoring profile configuration"
+  value       = local.profile_config
 }

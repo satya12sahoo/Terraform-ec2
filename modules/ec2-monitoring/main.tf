@@ -10,6 +10,78 @@ locals {
   default_ssm_parameter_name      = "/cloudwatch-agent/${var.ec2_instance_name}/config"
   default_dashboard_name          = "${var.ec2_instance_name}-Monitoring-Dashboard"
   default_log_group_name          = "/aws/ec2/${var.ec2_instance_name}/logs"
+  
+  # Profile-based configurations
+  profile_config = var.monitoring_profiles.profile == "web_server" ? var.monitoring_profiles.web_server : 
+                  var.monitoring_profiles.profile == "database_server" ? var.monitoring_profiles.database_server :
+                  var.monitoring_profiles.profile == "application_server" ? var.monitoring_profiles.application_server :
+                  null
+  
+  # Default dashboard configuration
+  default_dashboard_config = {
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/EC2", "CPUUtilization", "InstanceId", var.ec2_instance_name],
+            [".", "NetworkIn", ".", "."],
+            [".", "NetworkOut", ".", "."]
+          ]
+          period = var.dashboard_period
+          stat   = var.dashboard_stat
+          region = var.aws_region
+          title  = "EC2 Instance Metrics"
+          view   = "timeSeries"
+        }
+      },
+      {
+        type   = "metric"
+        x      = 12
+        y      = 0
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["CWAgent", "mem_used_percent", "InstanceId", var.ec2_instance_name],
+            [".", "disk_used_percent", ".", "."]
+          ]
+          period = var.dashboard_period
+          stat   = var.dashboard_stat
+          region = var.aws_region
+          title  = "System Metrics (CloudWatch Agent)"
+          view   = "timeSeries"
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 24
+        height = 6
+        properties = {
+          metrics = [
+            ["CWAgent", "cpu_usage_idle", "InstanceId", var.ec2_instance_name],
+            [".", "cpu_usage_user", ".", "."],
+            [".", "cpu_usage_system", ".", "."]
+          ]
+          period = var.dashboard_period
+          stat   = var.dashboard_stat
+          region = var.aws_region
+          title  = "CPU Usage Breakdown"
+          view   = "timeSeries"
+          stacked = true
+        }
+      }
+    ]
+  }
+  
+  # Use custom dashboard config if provided, otherwise use default
+  dashboard_body = var.dashboard_config != null ? jsonencode(var.dashboard_config) : jsonencode(local.default_dashboard_config)
 }
 
 # CloudWatch Agent IAM Role
@@ -110,45 +182,7 @@ resource "aws_cloudwatch_dashboard" "ec2_monitoring_dashboard" {
   
   dashboard_name = coalesce(var.dashboard_name, local.default_dashboard_name)
 
-  dashboard_body = jsonencode({
-    widgets = [
-      {
-        type   = "metric"
-        x      = 0
-        y      = 0
-        width  = 12
-        height = 6
-        properties = {
-          metrics = [
-            ["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", var.ec2_instance_name],
-            [".", "NetworkIn", ".", "."],
-            [".", "NetworkOut", ".", "."]
-          ]
-          period = 300
-          stat   = "Average"
-          region = var.aws_region
-          title  = "EC2 Instance Metrics"
-        }
-      },
-      {
-        type   = "metric"
-        x      = 12
-        y      = 0
-        width  = 12
-        height = 6
-        properties = {
-          metrics = [
-            ["CWAgent", "mem_used_percent", "InstanceId", var.ec2_instance_name],
-            [".", "disk_used_percent", ".", "."]
-          ]
-          period = 300
-          stat   = "Average"
-          region = var.aws_region
-          title  = "System Metrics (CloudWatch Agent)"
-        }
-      }
-    ]
-  })
+  dashboard_body = local.dashboard_body
 
   tags = var.tags
 }
@@ -207,4 +241,39 @@ resource "aws_cloudwatch_metric_alarm" "high_memory_alarm" {
   }
 
   tags = var.tags
+}
+
+# Custom CloudWatch Alarms
+resource "aws_cloudwatch_metric_alarm" "custom_alarms" {
+  for_each = { for idx, alarm in var.custom_alarms : alarm.name => alarm }
+  
+  alarm_name          = "${var.ec2_instance_name}-${each.value.name}"
+  comparison_operator = each.value.comparison_operator
+  evaluation_periods  = each.value.evaluation_periods
+  metric_name         = each.value.metric_name
+  namespace           = each.value.namespace
+  period              = each.value.period
+  statistic           = each.value.statistic
+  threshold           = each.value.threshold
+  alarm_description   = each.value.description
+  alarm_actions       = each.value.alarm_actions
+  ok_actions          = each.value.ok_actions
+  insufficient_data_actions = each.value.insufficient_data_actions
+  treat_missing_data  = each.value.treat_missing_data
+  datapoints_to_alarm = each.value.datapoints_to_alarm
+  extended_statistic  = each.value.extended_statistic
+  unit                = each.value.unit
+
+  dynamic "dimensions" {
+    for_each = each.value.dimensions
+    content {
+      name  = dimensions.key
+      value = dimensions.value
+    }
+  }
+
+  tags = merge(var.tags, {
+    AlarmType = "custom"
+    MetricName = each.value.metric_name
+  })
 }
