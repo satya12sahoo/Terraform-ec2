@@ -13,14 +13,15 @@ This Terraform module provides comprehensive monitoring for EC2 instances using 
 
 ## Usage
 
-### Basic Usage
+### Basic Usage (Minimal Configuration)
+
+The module provides sensible defaults for all resources. You only need to specify the EC2 instance name:
 
 ```hcl
 module "ec2_monitoring" {
   source = "./modules/ec2-monitoring"
   
   ec2_instance_name = "my-ec2-instance"
-  aws_region       = "us-west-2"
   
   tags = {
     Environment = "production"
@@ -28,6 +29,14 @@ module "ec2_monitoring" {
   }
 }
 ```
+
+**Default Resource Names:**
+- IAM Role: `{ec2_instance_name}-CloudWatchAgentRole`
+- IAM Policy: `{ec2_instance_name}-CloudWatchAgentPolicy`
+- IAM Instance Profile: `{ec2_instance_name}-CloudWatchAgentProfile`
+- SSM Parameter: `/cloudwatch-agent/{ec2_instance_name}/config`
+- Dashboard: `{ec2_instance_name}-Monitoring-Dashboard`
+- Log Group: `/aws/ec2/{ec2_instance_name}/logs`
 
 ### Advanced Usage with Custom Configuration
 
@@ -79,10 +88,19 @@ module "ec2_monitoring" {
 | ec2_instance_name | Name of the EC2 instance to monitor | `string` | n/a | yes |
 | aws_region | AWS region for the monitoring resources | `string` | `"us-west-2"` | no |
 | create_iam_role | Whether to create IAM role for CloudWatch agent | `bool` | `true` | no |
-| iam_role_name | Name of the IAM role for CloudWatch agent | `string` | `"CloudWatchAgentRole"` | no |
+| iam_role_name | Name of the IAM role for CloudWatch agent | `string` | `null` (auto-generated) | no |
+| iam_role_path | Path for the IAM role | `string` | `"/"` | no |
+| iam_policy_name | Name of the IAM policy for CloudWatch agent | `string` | `null` (auto-generated) | no |
+| iam_policy_path | Path for the IAM policy | `string` | `"/"` | no |
+| iam_instance_profile_name | Name of the IAM instance profile | `string` | `null` (auto-generated) | no |
 | create_ssm_parameter | Whether to create SSM parameter for CloudWatch agent configuration | `bool` | `true` | no |
+| ssm_parameter_name | Name of the SSM parameter for CloudWatch agent configuration | `string` | `null` (auto-generated) | no |
+| ssm_parameter_tier | Tier for the SSM parameter | `string` | `"Standard"` | no |
+| cloudwatch_agent_config | CloudWatch agent configuration JSON | `string` | Comprehensive default config | no |
 | create_dashboard | Whether to create CloudWatch dashboard | `bool` | `true` | no |
+| dashboard_name | Name of the CloudWatch dashboard | `string` | `null` (auto-generated) | no |
 | create_log_group | Whether to create CloudWatch log group | `bool` | `true` | no |
+| log_group_name | Name of the CloudWatch log group | `string` | `null` (auto-generated) | no |
 | create_cpu_alarm | Whether to create CPU utilization alarm | `bool` | `true` | no |
 | create_memory_alarm | Whether to create memory utilization alarm | `bool` | `true` | no |
 | cpu_alarm_threshold | CPU utilization threshold for alarm (percentage) | `number` | `80` | no |

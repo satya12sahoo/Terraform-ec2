@@ -1,11 +1,22 @@
 # EC2 Monitoring Module - CloudWatch Agent Installation and Configuration
 # This module provides comprehensive monitoring for EC2 instances using CloudWatch agent
 
+# Local values for default configurations
+locals {
+  # Default naming convention: {ec2_instance_name}-{resource_type}
+  default_iam_role_name           = "${var.ec2_instance_name}-CloudWatchAgentRole"
+  default_iam_policy_name         = "${var.ec2_instance_name}-CloudWatchAgentPolicy"
+  default_iam_instance_profile_name = "${var.ec2_instance_name}-CloudWatchAgentProfile"
+  default_ssm_parameter_name      = "/cloudwatch-agent/${var.ec2_instance_name}/config"
+  default_dashboard_name          = "${var.ec2_instance_name}-Monitoring-Dashboard"
+  default_log_group_name          = "/aws/ec2/${var.ec2_instance_name}/logs"
+}
+
 # CloudWatch Agent IAM Role
 resource "aws_iam_role" "cloudwatch_agent_role" {
   count = var.create_iam_role ? 1 : 0
   
-  name = var.iam_role_name
+  name = coalesce(var.iam_role_name, local.default_iam_role_name)
   path = var.iam_role_path
 
   assume_role_policy = jsonencode({
@@ -28,7 +39,7 @@ resource "aws_iam_role" "cloudwatch_agent_role" {
 resource "aws_iam_policy" "cloudwatch_agent_policy" {
   count = var.create_iam_role ? 1 : 0
   
-  name        = var.iam_policy_name
+  name        = coalesce(var.iam_policy_name, local.default_iam_policy_name)
   description = "Policy for CloudWatch agent to send metrics and logs"
   path        = var.iam_policy_path
 
@@ -74,7 +85,7 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent_policy_attachment" {
 resource "aws_iam_instance_profile" "cloudwatch_agent_profile" {
   count = var.create_iam_role ? 1 : 0
   
-  name = var.iam_instance_profile_name
+  name = coalesce(var.iam_instance_profile_name, local.default_iam_instance_profile_name)
   role = aws_iam_role.cloudwatch_agent_role[0].name
 
   tags = var.tags
@@ -84,7 +95,7 @@ resource "aws_iam_instance_profile" "cloudwatch_agent_profile" {
 resource "aws_ssm_parameter" "cloudwatch_agent_config" {
   count = var.create_ssm_parameter ? 1 : 0
   
-  name        = var.ssm_parameter_name
+  name        = coalesce(var.ssm_parameter_name, local.default_ssm_parameter_name)
   description = "CloudWatch agent configuration for EC2 instances"
   type        = "String"
   value       = var.cloudwatch_agent_config
@@ -97,7 +108,7 @@ resource "aws_ssm_parameter" "cloudwatch_agent_config" {
 resource "aws_cloudwatch_dashboard" "ec2_monitoring_dashboard" {
   count = var.create_dashboard ? 1 : 0
   
-  dashboard_name = var.dashboard_name
+  dashboard_name = coalesce(var.dashboard_name, local.default_dashboard_name)
 
   dashboard_body = jsonencode({
     widgets = [
@@ -146,7 +157,7 @@ resource "aws_cloudwatch_dashboard" "ec2_monitoring_dashboard" {
 resource "aws_cloudwatch_log_group" "ec2_logs" {
   count = var.create_log_group ? 1 : 0
   
-  name              = var.log_group_name
+  name              = coalesce(var.log_group_name, local.default_log_group_name)
   retention_in_days = var.log_retention_days
 
   tags = var.tags

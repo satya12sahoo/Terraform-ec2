@@ -21,7 +21,7 @@ variable "create_iam_role" {
 variable "iam_role_name" {
   description = "Name of the IAM role for CloudWatch agent"
   type        = string
-  default     = "CloudWatchAgentRole"
+  default     = null
 }
 
 variable "iam_role_path" {
@@ -33,7 +33,7 @@ variable "iam_role_path" {
 variable "iam_policy_name" {
   description = "Name of the IAM policy for CloudWatch agent"
   type        = string
-  default     = "CloudWatchAgentPolicy"
+  default     = null
 }
 
 variable "iam_policy_path" {
@@ -45,7 +45,7 @@ variable "iam_policy_path" {
 variable "iam_instance_profile_name" {
   description = "Name of the IAM instance profile"
   type        = string
-  default     = "CloudWatchAgentInstanceProfile"
+  default     = null
 }
 
 # SSM Parameter Configuration
@@ -58,7 +58,7 @@ variable "create_ssm_parameter" {
 variable "ssm_parameter_name" {
   description = "Name of the SSM parameter for CloudWatch agent configuration"
   type        = string
-  default     = "/cloudwatch-agent/config"
+  default     = null
 }
 
 variable "ssm_parameter_tier" {
@@ -161,7 +161,7 @@ variable "create_dashboard" {
 variable "dashboard_name" {
   description = "Name of the CloudWatch dashboard"
   type        = string
-  default     = "EC2-Monitoring-Dashboard"
+  default     = null
 }
 
 # CloudWatch Log Group Configuration
@@ -174,7 +174,7 @@ variable "create_log_group" {
 variable "log_group_name" {
   description = "Name of the CloudWatch log group"
   type        = string
-  default     = "/aws/ec2/application-logs"
+  default     = null
 }
 
 variable "log_retention_days" {

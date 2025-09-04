@@ -26,12 +26,29 @@ This example demonstrates how to use the EC2 monitoring module to set up compreh
    cd examples/ec2-monitoring
    ```
 
-2. **Create a terraform.tfvars file with your configuration:**
+2. **Choose your configuration approach:**
+
+   **Option A: Minimal Configuration (Recommended for beginners)**
+   ```bash
+   cp terraform.tfvars.minimal terraform.tfvars
+   # Edit terraform.tfvars and set your VPC ID
+   ```
+
+   **Option B: Full Configuration (For advanced users)**
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   # Edit terraform.tfvars and customize as needed
+   ```
+
+3. **Edit terraform.tfvars with your values:**
    ```hcl
-   aws_region = "us-west-2"
-   vpc_id     = "vpc-12345678"
-   instance_name = "my-monitoring-instance"
-   environment = "dev"
+   # Required
+   vpc_id = "vpc-12345678"
+   
+   # Optional (will use defaults if not specified)
+   instance_name = "my-monitoring-server"
+   environment   = "production"
+   aws_region   = "us-east-1"
    ```
 
 3. **Initialize Terraform:**
@@ -65,6 +82,18 @@ This example demonstrates how to use the EC2 monitoring module to set up compreh
 - `cpu_alarm_threshold`: CPU alarm threshold percentage (default: 80)
 - `memory_alarm_threshold`: Memory alarm threshold percentage (default: 80)
 - `log_retention_days`: CloudWatch log retention days (default: 30)
+
+### Default Resource Naming
+
+The module automatically generates resource names using this pattern:
+- **IAM Role**: `{instance_name}-CloudWatchAgentRole`
+- **IAM Policy**: `{instance_name}-CloudWatchAgentPolicy`
+- **IAM Instance Profile**: `{instance_name}-CloudWatchAgentProfile`
+- **SSM Parameter**: `/cloudwatch-agent/{instance_name}/config`
+- **Dashboard**: `{instance_name}-Monitoring-Dashboard`
+- **Log Group**: `/aws/ec2/{instance_name}/logs`
+
+You can override any of these names by setting the corresponding variables in your `terraform.tfvars` file.
 
 ## What Happens After Deployment
 
