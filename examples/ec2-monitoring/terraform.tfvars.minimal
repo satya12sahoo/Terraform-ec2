@@ -1,0 +1,10 @@
+# Minimal terraform.tfvars - Only required variables
+# This is the simplest configuration possible
+
+# REQUIRED: VPC ID where the EC2 instance will be created
+vpc_id = "vpc-12345678"
+
+# OPTIONAL: Customize these if needed
+instance_name = "my-server"
+environment   = "dev"
+aws_region   = "us-west-2"
